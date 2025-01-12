@@ -7,6 +7,7 @@ import { WidgetFormat } from './WidgetFormatSelector'
 import { supabase } from '@/lib/supabase'
 import { Story } from './StoriesList'
 import StoryThumbnail from './widgets/StoryThumbnail'
+import { WidgetSettings } from '@/types/database.types'
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -14,11 +15,22 @@ interface BrowserPreviewProps {
   widget: {
     format: WidgetFormat
     stories: string[]
+    settings?: WidgetSettings
   }
 }
 
-function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
+function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; stories: string[]; settings?: WidgetSettings }) {
   const [storyData, setStoryData] = useState<Story[]>([])
+
+  // Apply widget settings to style
+  const widgetStyle = {
+    borderColor: settings?.appearance?.borderColor,
+    borderWidth: settings?.appearance?.borderWidth ? `${settings.appearance.borderWidth}px` : undefined,
+    borderStyle: settings?.appearance?.borderStyle || 'solid',
+    borderRadius: settings?.appearance?.borderRadius ? `${settings.appearance.borderRadius}px` : undefined,
+    backgroundColor: settings?.appearance?.backgroundColor,
+    color: settings?.appearance?.textColor,
+  }
 
   useEffect(() => {
     async function loadStories() {
@@ -72,13 +84,13 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
   // For formats that show multiple stories
   if (['bubble', 'card', 'square'].includes(format)) {
     return (
-      <div className={containerClasses.withGap}>
+      <div className={containerClasses.withGap} style={widgetStyle}>
         {storyData.map((story) => (
           <StoryThumbnail 
             key={story.id}
             story={story}
             variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
-            size="md"
+            size={settings?.display?.size || "md"}
           />
         ))}
       </div>
@@ -87,13 +99,18 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
 
   // For formats that show single story
   if (format === 'sticky') {
+    const position = {
+      bottom: settings?.display?.position?.bottom || 20,
+      right: settings?.display?.position?.right || 20
+    }
+    
     return (
       <div className={containerClasses.base}>
-        <div className="fixed bottom-20 right-20">
+        <div className="fixed" style={{ ...widgetStyle, bottom: `${position.bottom}px`, right: `${position.right}px` }}>
           <StoryThumbnail 
             story={storyData[0]}
             variant="single-bubble"
-            size="md"
+            size={settings?.display?.size || "md"}
           />
         </div>
       </div>
@@ -104,7 +121,10 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
   if (format === 'iframe') {
     return (
       <div className={containerClasses.base}>
-        <div className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden">
+        <div 
+          className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden"
+          style={widgetStyle}
+        >
           {storyData[0]?.thumbnail ? (
             <img src={storyData[0].thumbnail} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -198,7 +218,7 @@ export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPrevi
                   </div>
                   
                   {/* Widget Preview - No Animation */}
-                  <WidgetPreview format={widget.format} stories={widget.stories} />
+                  <WidgetPreview format={widget.format} stories={widget.stories} settings={widget.settings} />
                   
                   {/* Price and Add to Cart - Animated */}
                   <div className="animate-pulse">

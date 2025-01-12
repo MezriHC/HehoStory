@@ -208,13 +208,37 @@ export default function CreateWidgetPage() {
 
   const handleSave = async () => {
     try {
+      const defaultSettings = {
+        appearance: {
+          borderColor: '#000000',
+          borderWidth: 1,
+          borderStyle: 'solid',
+          borderRadius: 8,
+          backgroundColor: '#ffffff',
+          textColor: '#000000'
+        },
+        display: {
+          format: format,
+          size: 'md',
+          position: {
+            bottom: 20,
+            right: 20
+          }
+        },
+        behavior: {
+          autoPlay: false,
+          loop: false,
+          showControls: true
+        }
+      }
+
       const widget = {
         name: name.trim(),
         format,
-        stories: selectedStories,
-        settings: {},
-        published: false,
-        author_id: 'anonymous'
+        story_ids: selectedStories,
+        settings: defaultSettings,
+        status: 'active',
+        user_id: (await supabase.auth.getUser()).data.user?.id
       }
 
       const { error } = await supabase
