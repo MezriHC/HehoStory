@@ -22,10 +22,40 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
   const [borderColor, setBorderColor] = useState('#000000')
 
   useEffect(() => {
-    // Load border color from localStorage
-    const savedProfile = JSON.parse(localStorage.getItem('profile') || '{}')
-    if (savedProfile.widgetBorderColor) {
-      setBorderColor(savedProfile.widgetBorderColor)
+    // Load border color from preferences
+    const loadBorderColor = async () => {
+      const { data, error } = await supabase
+        .from('preferences')
+        .select('widget_border_color')
+        .single()
+
+      if (!error && data?.widget_border_color) {
+        setBorderColor(data.widget_border_color)
+      }
+    }
+
+    loadBorderColor()
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('preferences_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'preferences'
+        },
+        (payload: any) => {
+          if (payload.new?.widget_border_color) {
+            setBorderColor(payload.new.widget_border_color)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
     }
   }, [])
 

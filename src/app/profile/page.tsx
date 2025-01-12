@@ -43,6 +43,7 @@ async function compressImage(dataUrl: string): Promise<string> {
 }
 
 export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState<Profile>({
     name: '',
     picture: null,
@@ -53,30 +54,29 @@ export default function ProfilePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Load profile from localStorage
-    const savedProfile = JSON.parse(localStorage.getItem('profile') || '{}')
-    if (savedProfile.name) {
-      setProfile(savedProfile)
-    }
+    setMounted(true)
+  }, [])
 
-    // Load widget border color from database
-    const loadWidgetBorderColor = async () => {
-      const { data, error } = await supabase
-        .from('widgets')
+  useEffect(() => {
+    if (!mounted) return
+
+    // Load widget border color from preferences
+    const loadBorderColor = async () => {
+      const { data } = await supabase
+        .from('preferences')
         .select('widget_border_color')
-        .eq('author_id', 'anonymous')
         .single()
 
-      if (!error && data) {
+      if (data?.widget_border_color) {
         setProfile(prev => ({
           ...prev,
-          widgetBorderColor: data.widget_border_color || '#000000'
+          widgetBorderColor: data.widget_border_color
         }))
       }
     }
 
-    loadWidgetBorderColor()
-  }, [])
+    loadBorderColor()
+  }, [mounted])
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -95,29 +95,43 @@ export default function ProfilePage() {
   }
 
   const handleSave = async () => {
-    if (!profile.name.trim()) {
-      alert('Please enter your name')
-      return
-    }
-    try {
-      // Save to localStorage
-      localStorage.setItem('profile', JSON.stringify(profile))
-      
-      // Update all widgets with the new border color
-      const { error: updateError } = await supabase
-        .from('widgets')
-        .update({ widget_border_color: profile.widgetBorderColor })
-        .eq('author_id', 'anonymous')
-      
-      if (updateError) throw updateError
+    try {      
+      // Insert preferences if they don't exist, update if they do
+      const { error } = await supabase
+        .from('preferences')
+        .upsert({ 
+          widget_border_color: profile.widgetBorderColor,
+          // Add a dummy id if it's a new record
+          id: (await supabase.from('preferences').select('id').single()).data?.id || '00000000-0000-0000-0000-000000000000'
+        })
+        .select()
+
+      if (error) {
+        console.error('Database error:', error)
+        throw error
+      }
       
       setShowToast(true)
       setTimeout(() => {
         router.push('/story')
       }, 1500)
-    } catch (error) {
-      alert('Failed to save profile. Please try again.')
+    } catch (error: any) {
+      console.error('Save error:', error.message || error)
+      alert(error.message || 'Failed to save profile. Please try again.')
     }
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -138,7 +152,7 @@ export default function ProfilePage() {
               {/* Profile picture */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Profile Picture
+                  Profile Picture (optional)
                   <span className="block text-sm font-normal text-gray-500 mt-1">
                     This will also be used as the default picture for your stories
                   </span>
@@ -184,7 +198,7 @@ export default function ProfilePage() {
               {/* Profile name */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Name
+                  Name (optional)
                   <span className="block text-sm font-normal text-gray-500 mt-1">
                     This will also be used as the default name for your stories
                   </span>
@@ -194,7 +208,7 @@ export default function ProfilePage() {
                   id="name"
                   value={profile.name}
                   onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter your name"
+                  placeholder="Enter your name (optional)"
                   className="w-full h-12 px-4 text-base text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
                 />
               </div>
@@ -232,8 +246,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-2">
             <button
               onClick={handleSave}
-              disabled={!profile.name.trim()}
-              className="w-full h-14 flex items-center justify-center text-base font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+              className="w-full h-14 flex items-center justify-center text-base font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
             >
               <Save className="w-5 h-5 mr-2" />
               Save Changes

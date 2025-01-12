@@ -121,11 +121,23 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
   )
 }
 
-export default function CreateWidgetPage() {
+interface CreateWidgetPageProps {
+  initialWidget?: {
+    id: string
+    name: string
+    format: WidgetFormat
+    stories: string[]
+    settings: any
+    published: boolean
+    author_id: string
+  }
+}
+
+export default function CreateWidgetPage({ initialWidget }: CreateWidgetPageProps) {
   const [step, setStep] = useState(1)
-  const [format, setFormat] = useState<WidgetFormat | null>(null)
-  const [selectedStories, setSelectedStories] = useState<string[]>([])
-  const [name, setName] = useState('')
+  const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || null)
+  const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.stories || [])
+  const [name, setName] = useState(initialWidget?.name || '')
   const [stories, setStories] = useState<Story[]>([])
   const [widgetBorderColor, setWidgetBorderColor] = useState('#000000')
   const router = useRouter()
@@ -143,15 +155,14 @@ export default function CreateWidgetPage() {
         if (storiesError) throw storiesError
         setStories(storiesData || [])
 
-        // Load widget border color from database
-        const { data: widgetData, error: widgetError } = await supabase
-          .from('widgets')
+        // Load widget border color from preferences
+        const { data: prefData, error: prefError } = await supabase
+          .from('preferences')
           .select('widget_border_color')
-          .eq('author_id', 'anonymous')
           .single()
 
-        if (!widgetError && widgetData?.widget_border_color) {
-          setWidgetBorderColor(widgetData.widget_border_color)
+        if (!prefError && prefData?.widget_border_color) {
+          setWidgetBorderColor(prefData.widget_border_color)
         }
       } catch (error) {
         console.error('Error loading data:', error)
@@ -204,22 +215,32 @@ export default function CreateWidgetPage() {
         name: name.trim(),
         format,
         stories: selectedStories,
-        settings: {},
-        published: false,
-        author_id: 'anonymous',
-        widget_border_color: widgetBorderColor
+        settings: initialWidget?.settings || {},
+        published: initialWidget?.published || false,
+        author_id: 'anonymous'
       }
 
-      const { error } = await supabase
-        .from('widgets')
-        .insert([widget])
+      if (initialWidget) {
+        // Update existing widget
+        const { error } = await supabase
+          .from('widgets')
+          .update(widget)
+          .eq('id', initialWidget.id)
 
-      if (error) throw error
+        if (error) throw error
+      } else {
+        // Create new widget
+        const { error } = await supabase
+          .from('widgets')
+          .insert([widget])
+
+        if (error) throw error
+      }
 
       router.push('/widget')
     } catch (error) {
-      console.error('Error creating widget:', error)
-      alert('Failed to create widget. Please try again.')
+      console.error('Error saving widget:', error)
+      alert('Failed to save widget. Please try again.')
     }
   }
 
@@ -271,7 +292,7 @@ export default function CreateWidgetPage() {
             {isLastStep ? (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Create widget
+                {initialWidget ? 'Save changes' : 'Create widget'}
               </>
             ) : (
               <>
@@ -285,14 +306,18 @@ export default function CreateWidgetPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-6">
           {step === 1 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Choose format</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                {initialWidget ? 'Edit format' : 'Choose format'}
+              </h2>
               <WidgetFormatSelector value={format} onChange={handleFormatChange} />
             </div>
           )}
           
           {step === 2 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Select stories</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                {initialWidget ? 'Edit stories' : 'Select stories'}
+              </h2>
               <StorySelector
                 stories={stories}
                 selectedStories={selectedStories}
@@ -303,7 +328,9 @@ export default function CreateWidgetPage() {
           
           {step === 3 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Name & arrange</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                {initialWidget ? 'Edit name & arrangement' : 'Name & arrange'}
+              </h2>
               <div className="mb-6">
                 <label htmlFor="widget-name" className="block text-sm font-medium text-gray-700 mb-2">
                   Widget name
