@@ -27,6 +27,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [previewStory, setPreviewStory] = useState<Story | null>(null)
+  const [isClosing, setIsClosing] = useState(false)
 
   const filteredStories = stories.filter(story =>
     story.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -48,6 +49,15 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
     } catch {
       return []
     }
+  }
+
+  const handleClose = () => {
+    if (isClosing) return
+    setIsClosing(true)
+    setTimeout(() => {
+      setPreviewStory(null)
+      setIsClosing(false)
+    }, 300)
   }
 
   return (
@@ -186,10 +196,12 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
       {previewStory && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
-          onClick={() => setPreviewStory(null)}
+          onClick={handleClose}
         >
           <div 
-            className="w-[525px] aspect-[9/16] bg-black rounded-2xl overflow-hidden"
+            className={`w-[525px] aspect-[9/16] bg-black rounded-2xl overflow-hidden ${
+              isClosing ? 'animate-close-to-center-right' : ''
+            }`}
             onClick={e => e.stopPropagation()}
           >
             <StoryPreview 

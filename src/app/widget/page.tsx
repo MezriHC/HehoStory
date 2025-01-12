@@ -11,6 +11,7 @@ import SettingsModal from '../components/SettingsModal'
 import { supabase } from '@/lib/supabase'
 import { Story } from '../components/StoriesList'
 import React from 'react'
+import Loader from '@/app/components/Loader'
 
 interface Widget {
   id: string
@@ -278,25 +279,27 @@ export default function WidgetsPage() {
   const [search, setSearch] = useState('')
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
   const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    async function loadWidgets() {
+      try {
+        const { data, error } = await supabase
+          .from('widgets')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setWidgets(data || [])
+      } catch (error) {
+        console.error('Error loading widgets:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     loadWidgets()
   }, [])
-
-  const loadWidgets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('widgets')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setWidgets(data || [])
-    } catch (error) {
-      console.error('Error loading widgets:', error)
-    }
-  }
 
   const handleDelete = async (id: string) => {
     setWidgetToDelete(id)
@@ -324,6 +327,10 @@ export default function WidgetsPage() {
   const filteredWidgets = widgets.filter(widget =>
     widget.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (isLoading) {
+    return <Loader />
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white">

@@ -6,6 +6,8 @@ import StoriesList, { Story } from '../components/StoriesList'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import Loader from '@/app/components/Loader'
+import { useState, useEffect } from 'react'
 
 // Fetch function for stories
 const fetchStories = async () => {
@@ -23,14 +25,28 @@ const fetchStories = async () => {
 
 export default function StoriesPage() {
   const queryClient = useQueryClient()
+  const [stories, setStories] = useState<Story[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Query for stories with caching
-  const { data: stories = [] } = useQuery({
-    queryKey: ['stories'],
-    queryFn: fetchStories,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true, // Refetch when component mounts
-  })
+  useEffect(() => {
+    async function loadStories() {
+      try {
+        const { data, error } = await supabase
+          .from('stories')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setStories(data || [])
+      } catch (error) {
+        console.error('Error loading stories:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadStories()
+  }, [])
 
   // Mutation for deleting stories
   const deleteMutation = useMutation({
@@ -53,8 +69,23 @@ export default function StoriesPage() {
     }
   })
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id)
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('stories')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      setStories(stories.filter(story => story.id !== id))
+    } catch (error) {
+      console.error('Error deleting story:', error)
+    }
+  }
+
+  if (isLoading) {
+    return <Loader />
   }
 
   if (stories.length === 0) {

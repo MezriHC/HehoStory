@@ -12,12 +12,13 @@ interface StoryPreviewProps {
   items: MediaItem[]
   profileImage?: string
   profileName?: string
+  onComplete?: () => void
 }
 
 const STORY_DURATION = 5000 // 5 seconds for images
 const PROGRESS_BAR_WIDTH = 100 // percentage
 
-export default function StoryPreview({ items, profileImage, profileName }: StoryPreviewProps) {
+export default function StoryPreview({ items, profileImage, profileName, onComplete }: StoryPreviewProps) {
   const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
@@ -52,11 +53,10 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
       setCurrentIndex(prev => prev + 1)
       resetProgress()
     } else {
-      // Loop back to first story
-      setCurrentIndex(0)
-      resetProgress()
+      // Call onComplete when we reach the last item
+      onComplete?.()
     }
-  }, [isLastItem, resetProgress])
+  }, [isLastItem, resetProgress, onComplete])
 
   const goToPrevStory = useCallback(() => {
     if (currentIndex > 0) {
