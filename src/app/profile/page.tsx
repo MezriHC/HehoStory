@@ -4,10 +4,13 @@ import { Camera, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Toast from '../components/Toast'
+import WidgetPreview from '../components/widgets/WidgetPreview'
+import ColorPicker from '../components/widgets/ColorPicker'
 
 interface Profile {
   name: string
   picture: string | null
+  widgetBorderColor: string
 }
 
 async function compressImage(dataUrl: string): Promise<string> {
@@ -41,7 +44,8 @@ async function compressImage(dataUrl: string): Promise<string> {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({
     name: '',
-    picture: null
+    picture: null,
+    widgetBorderColor: '#000000'
   })
   const [showToast, setShowToast] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -88,78 +92,122 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Profile</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Configure how you appear to others in your stories
+          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+          <p className="text-lg text-gray-600 mt-2">
+            Configure your profile and default story settings
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <div className="p-8">
-            {/* Profile picture */}
-            <div className="mb-8 flex flex-col items-center">
-              <div className="relative mb-4">
-                <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profile.picture ? (
-                    <img
-                      src={profile.picture}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <Camera className="w-8 h-8 text-gray-400" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Profile Settings */}
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Information</h2>
+            <div className="space-y-8">
+              {/* Profile picture */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">
+                  Profile Picture
+                  <span className="block text-sm font-normal text-gray-500 mt-1">
+                    This will also be used as the default picture for your stories
+                  </span>
+                </label>
+                <div className="flex flex-col items-center">
+                  <div className="relative mb-4">
+                    <div className="w-40 h-40 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {profile.picture ? (
+                        <img
+                          src={profile.picture}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <Camera className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 transition-colors shadow-lg"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePictureChange}
+                    />
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm font-medium text-gray-900 hover:text-gray-700"
+                  >
+                    Change picture
+                  </button>
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 transition-colors"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
+              </div>
+
+              {/* Profile name */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Name
+                  <span className="block text-sm font-normal text-gray-500 mt-1">
+                    This will also be used as the default name for your stories
+                  </span>
+                </label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePictureChange}
+                  type="text"
+                  id="name"
+                  value={profile.name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter your name"
+                  className="w-full h-12 px-4 text-base text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
                 />
               </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-sm font-medium text-gray-900 hover:text-gray-700"
-              >
-                Change picture
-              </button>
             </div>
+          </div>
 
-            {/* Profile name */}
-            <div className="mb-8">
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={profile.name}
-                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter your name"
-                className="w-full h-11 px-4 text-base text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors"
+          {/* Widget Settings */}
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Widget Appearance</h2>
+            <div className="space-y-8">
+              {/* Widget Border Color */}
+              <ColorPicker
+                value={profile.widgetBorderColor}
+                onChange={(color) => setProfile(prev => ({ ...prev, widgetBorderColor: color }))}
+                label="Widget Border Color"
+                description="Choose the border color for all your story widgets"
               />
-            </div>
 
-            {/* Save button */}
+              {/* Preview */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">
+                  Widget Preview
+                  <span className="block text-sm font-normal text-gray-500 mt-1">
+                    See how your stories will appear in different widget styles
+                  </span>
+                </label>
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <WidgetPreview borderColor={profile.widgetBorderColor} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button - Full Width */}
+          <div className="lg:col-span-2">
             <button
               onClick={handleSave}
               disabled={!profile.name.trim()}
-              className="w-full h-11 flex items-center justify-center text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full h-14 flex items-center justify-center text-base font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              <Save className="w-4 h-4 mr-2" />
-              Save changes
+              <Save className="w-5 h-5 mr-2" />
+              Save Changes
             </button>
           </div>
         </div>

@@ -1,128 +1,81 @@
 import { WidgetFormat } from './WidgetFormatSelector'
+import StoryThumbnail from './widgets/StoryThumbnail'
 
 interface ProductPageSkeletonProps {
   format: WidgetFormat
 }
 
 export default function ProductPageSkeleton({ format }: ProductPageSkeletonProps) {
-  const renderWidget = () => {
-    const commonClasses = "bg-gray-900 shadow-lg backdrop-blur-sm"
-    
+  return (
+    <div className="min-h-screen py-32">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="space-y-4">
+          <div className="w-3/4 h-8 bg-gray-100 rounded-lg" />
+          <div className="w-1/2 h-6 bg-gray-100 rounded-lg" />
+        </div>
+
+        {/* Content Section */}
+        <div className="space-y-6">
+          <div className="w-full h-48 bg-gray-100 rounded-lg" />
+          <div className="w-5/6 h-32 bg-gray-100 rounded-lg" />
+          <div className="w-full h-64 bg-gray-100 rounded-lg" />
+        </div>
+
+        {/* Widget Preview */}
+        {renderWidget()}
+      </div>
+    </div>
+  )
+
+  function renderWidget() {
     switch (format) {
       case 'bubble':
         return (
-          <div className="fixed bottom-4 right-4 flex gap-2 items-center">
+          <div className="fixed bottom-6 right-6 flex gap-6 items-center">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className={`w-14 h-14 rounded-full ${commonClasses} transition-transform hover:scale-105`} />
+              <StoryThumbnail key={i} variant="bubble" />
             ))}
           </div>
         )
       case 'card':
         return (
-          <div className="fixed bottom-4 right-4 flex gap-2 items-end">
+          <div className="fixed bottom-6 right-6 flex gap-6 items-end">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className={`w-20 h-28 rounded-xl ${commonClasses} transition-transform hover:scale-105`} />
+              <StoryThumbnail key={i} variant="card" />
             ))}
           </div>
         )
       case 'square':
         return (
-          <div className="fixed bottom-4 right-4 flex gap-2 items-center">
+          <div className="fixed bottom-6 right-6 flex gap-6 items-center">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className={`w-20 h-20 rounded-xl ${commonClasses} transition-transform hover:scale-105`} />
+              <StoryThumbnail key={i} variant="square" />
             ))}
           </div>
         )
       case 'iframe':
         return (
-          <div className="fixed right-4 top-1/2 -translate-y-1/2">
-            <div className={`w-72 h-[calc(100vh-8rem)] rounded-xl ${commonClasses}`}>
-              <div className="p-4 space-y-2">
-                <div className="w-3/4 h-2 bg-white/20 rounded" />
-                <div className="w-1/2 h-2 bg-white/20 rounded" />
+          <div className="fixed right-6 top-1/2 -translate-y-1/2">
+            <div className="relative w-[300px] h-[600px]">
+              <div className="absolute inset-0 rounded-lg border-2 border-black" />
+              <div className="absolute inset-[5px] rounded-lg overflow-hidden bg-black/90">
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/20" />
+                  <svg className="w-8 h-8 text-white relative z-10" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 4v16l14-8L6 4z" fill="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
         )
       case 'sticky':
         return (
-          <div className="fixed bottom-4 right-4">
-            <div className={`w-14 h-14 rounded-full ${commonClasses} transition-transform hover:scale-105`} />
+          <div className="fixed bottom-6 right-6">
+            <StoryThumbnail variant="bubble" size="sm" />
           </div>
         )
     }
   }
-
-  return (
-    <div className="w-full aspect-[4/3] bg-white rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="h-16 border-b border-gray-100 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-          <div className="w-24 h-4 bg-gray-100 rounded-lg" />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-4 bg-gray-100 rounded-lg" />
-          <div className="w-10 h-4 bg-gray-100 rounded-lg" />
-          <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-6 grid grid-cols-2 gap-8">
-        {/* Product images */}
-        <div className="space-y-4">
-          <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200" />
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Product info */}
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="w-3/4 h-8 bg-gray-100 rounded-lg" />
-              <div className="w-1/2 h-6 bg-gray-100 rounded-lg" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-20 h-8 bg-gray-100 rounded-lg" />
-              <div className="w-20 h-8 bg-gray-100 rounded-lg" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="w-full h-4 bg-gray-100 rounded-lg" />
-            <div className="w-full h-4 bg-gray-100 rounded-lg" />
-            <div className="w-2/3 h-4 bg-gray-100 rounded-lg" />
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-1/3 h-6 bg-gray-100 rounded-lg" />
-            <div className="grid grid-cols-3 gap-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="aspect-square bg-gray-100 rounded-lg" />
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1 h-12 bg-gray-100 rounded-lg" />
-            <div className="flex-1 h-12 bg-gray-900 rounded-lg" />
-          </div>
-        </div>
-      </div>
-
-      {/* Widget preview */}
-      <div className="relative">
-        {renderWidget()}
-      </div>
-    </div>
-  )
 } 

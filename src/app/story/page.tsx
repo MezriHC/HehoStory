@@ -1,26 +1,76 @@
 'use client'
 
 import { Layers, Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import EmptyState from '../components/EmptyState'
 import StoriesList, { Story } from '../components/StoriesList'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+// Fetch function for stories
+const fetchStories = async () => {
+  const { data, error } = await supabase
+    .from('stories')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  return data || []
+}
 
 export default function StoriesPage() {
-  const [stories, setStories] = useState<Story[]>([])
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    // Load stories from localStorage
-    const savedStories = JSON.parse(localStorage.getItem('stories') || '[]')
-    setStories(savedStories)
-  }, [])
+  // Query for stories with caching
+  const { data: stories = [], isLoading, isError } = useQuery({
+    queryKey: ['stories'],
+    queryFn: fetchStories,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true, // Refetch when component mounts
+  })
+
+  // Mutation for deleting stories
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('stories')
+        .delete()
+        .eq('id', id)
+      
+      if (error) throw error
+    },
+    onSuccess: (_, deletedId) => {
+      // Update cache after successful deletion
+      queryClient.setQueryData(['stories'], (oldStories: Story[] = []) => 
+        oldStories.filter(story => story.id !== deletedId)
+      )
+    },
+    onError: (error: Error) => {
+      console.error('Error deleting story:', error)
+    }
+  })
 
   const handleDelete = (id: string) => {
-    setStories(prev => {
-      const newStories = prev.filter(story => story.id !== id)
-      localStorage.setItem('stories', JSON.stringify(newStories))
-      return newStories
-    })
+    deleteMutation.mutate(id)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-white flex items-center justify-center">
+        <div className="text-red-600">Error loading stories. Please try again.</div>
+      </div>
+    )
   }
 
   if (stories.length === 0) {

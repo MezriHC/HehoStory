@@ -4,6 +4,9 @@ import { Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
+import { supabase } from '@/lib/supabase'
+import { Story } from './StoriesList'
+import StoryThumbnail from './widgets/StoryThumbnail'
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -15,60 +18,106 @@ interface BrowserPreviewProps {
 }
 
 function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
-  switch (format) {
-    case 'bubble':
-      return (
-        <div className="flex gap-2 mb-8">
-          {stories.map((_, index) => (
-            <div 
-              key={index}
-              className="w-12 h-12 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-105 transform transition-transform cursor-pointer"
-            >
-              <Eye className="w-5 h-5 text-white" />
-            </div>
-          ))}
-        </div>
-      )
+  const [storyData, setStoryData] = useState<Story[]>([])
 
-    case 'sticky':
-      return (
-        <div className="absolute bottom-8 right-8">
-          <div 
-            className="w-14 h-14 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer"
-          >
-            <Eye className="w-6 h-6 text-white" />
-          </div>
-        </div>
-      )
+  useEffect(() => {
+    async function loadStories() {
+      try {
+        if (!stories?.length) {
+          setStoryData([])
+          return
+        }
 
-    case 'iframe':
-      return (
-        <div className="absolute bottom-8 right-8 w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer">
-          <div className="w-full h-full flex items-center justify-center">
-            <Eye className="w-8 h-8 text-white" />
-          </div>
-        </div>
-      )
+        const validStoryIds = stories.filter(id => id && typeof id === 'string')
+        if (!validStoryIds.length) {
+          setStoryData([])
+          return
+        }
 
-    case 'card':
-    case 'square':
-      const isSquare = format === 'square'
-      return (
-        <div className="mb-8">
-          <div className={isSquare ? "flex gap-2" : "flex gap-4 overflow-x-auto pb-2"}>
-            {stories.map((_, index) => (
-              <div 
-                key={index}
-                className={`${isSquare ? 'w-[160px] aspect-square rounded-xl' : 'flex-none w-[180px] aspect-[3/4] rounded-2xl'} 
-                  bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer`}
-              >
-                <Eye className={`${isSquare ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )
+        const { data, error } = await supabase
+          .from('stories')
+          .select('id, title, thumbnail, content, author_id, published, created_at')
+          .in('id', validStoryIds)
+
+        if (error) {
+          console.error('Failed to fetch stories:', {
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            storyIds: validStoryIds
+          })
+          setStoryData([])
+          return
+        }
+
+        setStoryData(data || [])
+      } catch (error) {
+        console.error('Unexpected error loading stories:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          storyIds: stories
+        })
+        setStoryData([])
+      }
+    }
+
+    loadStories()
+  }, [stories])
+
+  // Common styles for all formats
+  const containerClasses = {
+    base: "",
+    withGap: "py-8 flex justify-start gap-6"
   }
+
+  // For formats that show multiple stories
+  if (['bubble', 'card', 'square'].includes(format)) {
+    return (
+      <div className={containerClasses.withGap}>
+        {storyData.map((story) => (
+          <StoryThumbnail 
+            key={story.id}
+            story={story}
+            variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
+            size="md"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // For formats that show single story
+  if (format === 'sticky') {
+    return (
+      <div className={containerClasses.base}>
+        <div className="fixed bottom-20 right-20">
+          <StoryThumbnail 
+            story={storyData[0]}
+            variant="single-bubble"
+            size="md"
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // For iframe format
+  if (format === 'iframe') {
+    return (
+      <div className={containerClasses.base}>
+        <div className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden">
+          {storyData[0]?.thumbnail ? (
+            <img src={storyData[0].thumbnail} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Eye className="w-8 h-8 text-white" />
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
 
 export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPreviewProps) {
@@ -142,7 +191,7 @@ export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPrevi
                 <div>
                   {/* Title and Price - Animated */}
                   <div className="animate-pulse">
-                    <div className="space-y-4 mb-6">
+                    <div className="space-y-4">
                       <div className="w-3/4 h-8 bg-gray-200 rounded" />
                       <div className="w-1/2 h-6 bg-gray-100 rounded" />
                     </div>
