@@ -4,10 +4,13 @@ import { Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
+<<<<<<< HEAD
 import { supabase } from '@/lib/supabase'
 import { Story } from './StoriesList'
 import StoryThumbnail from './widgets/StoryThumbnail'
 import { WidgetSettings } from '@/types/database.types'
+=======
+>>>>>>> parent of 237890d (Updated and working)
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -19,6 +22,7 @@ interface BrowserPreviewProps {
   }
 }
 
+<<<<<<< HEAD
 function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; stories: string[]; settings?: WidgetSettings }) {
   const [storyData, setStoryData] = useState<Story[]>([])
 
@@ -130,14 +134,63 @@ function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; st
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
+=======
+function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
+  switch (format) {
+    case 'bubble':
+      return (
+        <div className="flex gap-2 mb-8">
+          {stories.map((_, index) => (
+            <div 
+              key={index}
+              className="w-12 h-12 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-105 transform transition-transform cursor-pointer"
+            >
+              <Eye className="w-5 h-5 text-white" />
+>>>>>>> parent of 237890d (Updated and working)
             </div>
-          )}
+          ))}
         </div>
-      </div>
-    )
-  }
+      )
 
-  return null
+    case 'sticky':
+      return (
+        <div className="absolute bottom-8 right-8">
+          <div 
+            className="w-14 h-14 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer"
+          >
+            <Eye className="w-6 h-6 text-white" />
+          </div>
+        </div>
+      )
+
+    case 'iframe':
+      return (
+        <div className="absolute bottom-8 right-8 w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer">
+          <div className="w-full h-full flex items-center justify-center">
+            <Eye className="w-8 h-8 text-white" />
+          </div>
+        </div>
+      )
+
+    case 'card':
+    case 'square':
+      const isSquare = format === 'square'
+      return (
+        <div className="mb-8">
+          <div className={isSquare ? "flex gap-2" : "flex gap-4 overflow-x-auto pb-2"}>
+            {stories.map((_, index) => (
+              <div 
+                key={index}
+                className={`${isSquare ? 'w-[160px] aspect-square rounded-xl' : 'flex-none w-[180px] aspect-[3/4] rounded-2xl'} 
+                  bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer`}
+              >
+                <Eye className={`${isSquare ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+  }
 }
 
 export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPreviewProps) {
@@ -211,7 +264,7 @@ export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPrevi
                 <div>
                   {/* Title and Price - Animated */}
                   <div className="animate-pulse">
-                    <div className="space-y-4">
+                    <div className="space-y-4 mb-6">
                       <div className="w-3/4 h-8 bg-gray-200 rounded" />
                       <div className="w-1/2 h-6 bg-gray-100 rounded" />
                     </div>

@@ -1,14 +1,14 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import Header from './components/Header'
-import Providers from './providers'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import Header from "./components/Header";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: 'HehoStory',
-  description: 'Create and manage your stories',
-}
+export const metadata: Metadata = {
+  title: "HehoStory - E-commerce Story Platform",
+  description: "Create and manage Instagram-like stories for your e-commerce website",
+};
 
 export default function RootLayout({
   children,
@@ -16,13 +16,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body className={inter.className}>
-        <Providers>
-          <Header />
+        <Header />
+        <main>
           {children}
-        </Providers>
+        </main>
       </body>
     </html>
-  )
+  );
 }

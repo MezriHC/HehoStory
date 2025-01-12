@@ -3,11 +3,10 @@
 import { ArrowLeft, ArrowRight, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Story } from '../../components/StoriesList'
 import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetFormatSelector'
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DroppableProvided, DropResult } from '@hello-pangea/dnd'
-import { supabase } from '@/lib/supabase'
 
 interface StorySelector {
   stories: Story[]
@@ -85,7 +84,7 @@ function DraggableStory({ story, index, format, onRemove }: { story: Story; inde
   const getFormatClasses = () => {
     switch (format) {
       case 'bubble':
-        return 'w-[80px] h-[80px] rounded-full relative after:absolute after:inset-[-5px] after:border-2 after:border-gray-900 after:rounded-full'
+        return 'w-16 h-16 rounded-full'
       case 'card':
         return 'w-24 h-32 rounded-xl'
       case 'square':
@@ -143,31 +142,11 @@ export default function CreateWidgetPage() {
   const [format, setFormat] = useState<WidgetFormat | null>(null)
   const [selectedStories, setSelectedStories] = useState<string[]>([])
   const [name, setName] = useState('')
-  const [stories, setStories] = useState<Story[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Load stories from Supabase
-  useEffect(() => {
-    loadStories()
-  }, [])
-
-  const loadStories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('stories')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setStories(data || [])
-    } catch (error) {
-      console.error('Error loading stories:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Load stories from localStorage
+  const stories = JSON.parse(localStorage.getItem('stories') || '[]')
+  const selectedStoriesData = stories.filter((s: Story) => selectedStories.includes(s.id))
 
   // Update selected stories when format changes
   const handleFormatChange = (newFormat: WidgetFormat) => {
@@ -198,14 +177,14 @@ export default function CreateWidgetPage() {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
     
-    const selectedStoriesData = stories.filter(s => selectedStories.includes(s.id))
-    const items = Array.from(selectedStoriesData)
+    const items = Array.from(selectedStoriesData) as Story[]
     const [reorderedItem] = items.splice(result.source.index, 1)
     items.splice(result.destination.index, 0, reorderedItem)
     
     setSelectedStories(items.map(item => item.id))
   }
 
+<<<<<<< HEAD
   const handleSave = async () => {
     try {
       const defaultSettings = {
@@ -251,7 +230,22 @@ export default function CreateWidgetPage() {
     } catch (error) {
       console.error('Error creating widget:', error)
       alert('Failed to create widget. Please try again.')
+=======
+  const handleSave = () => {
+    const widget = {
+      id: Math.random().toString(36).slice(2),
+      name,
+      format,
+      stories: selectedStories,
+      createdAt: new Date(),
+>>>>>>> parent of 237890d (Updated and working)
     }
+
+    // Save widget to localStorage
+    const existingWidgets = JSON.parse(localStorage.getItem('widgets') || '[]')
+    localStorage.setItem('widgets', JSON.stringify([widget, ...existingWidgets]))
+
+    router.push('/widget')
   }
 
   const handleBack = () => {
@@ -266,9 +260,6 @@ export default function CreateWidgetPage() {
     ? selectedStories.length > 0
     : name.trim().length > 0
   const isLastStep = step === 3
-
-  // Get the selected stories data
-  const selectedStoriesData = stories.filter(story => selectedStories.includes(story.id))
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
@@ -361,7 +352,7 @@ export default function CreateWidgetPage() {
                         {...provided.droppableProps}
                         className="flex items-start gap-6 min-h-[80px] p-4 bg-gray-50 rounded-lg"
                       >
-                        {selectedStoriesData.map((story, index) => (
+                        {selectedStoriesData.map((story: Story, index: number) => (
                           <DraggableStory
                             key={story.id}
                             story={story}
