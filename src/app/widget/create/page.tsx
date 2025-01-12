@@ -3,10 +3,12 @@
 import { ArrowLeft, ArrowRight, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Story } from '../../components/StoriesList'
 import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetFormatSelector'
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DroppableProvided, DropResult } from '@hello-pangea/dnd'
+import { supabase } from '@/lib/supabase'
+import StoryThumbnail from '../../components/widgets/StoryThumbnail'
 
 interface StorySelector {
   stories: Story[]
@@ -80,22 +82,7 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
   )
 }
 
-function DraggableStory({ story, index, format, onRemove }: { story: Story; index: number; format: WidgetFormat; onRemove: (id: string) => void }) {
-  const getFormatClasses = () => {
-    switch (format) {
-      case 'bubble':
-        return 'w-16 h-16 rounded-full'
-      case 'card':
-        return 'w-24 h-32 rounded-xl'
-      case 'square':
-        return 'w-20 h-20 rounded-xl'
-      case 'sticky':
-        return 'w-16 h-16 rounded-full'
-      case 'iframe':
-        return 'w-[300px] h-[600px] rounded-xl'
-    }
-  }
-
+function DraggableStory({ story, index, format, onRemove, borderColor }: { story: Story; index: number; format: WidgetFormat; onRemove: (id: string) => void; borderColor: string }) {
   const getRemoveButtonClasses = () => {
     if (format === 'iframe') {
       return 'absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70'
@@ -113,15 +100,12 @@ function DraggableStory({ story, index, format, onRemove }: { story: Story; inde
           style={provided.draggableProps.style}
           className="relative"
         >
-          <div className={`overflow-hidden bg-gray-100 ${getFormatClasses()}`}>
-            {story.thumbnail && (
-              <img
-                src={story.thumbnail}
-                alt={story.title}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
+          <StoryThumbnail
+            story={story}
+            variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
+            size="md"
+            borderColor={borderColor}
+          />
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -142,11 +126,40 @@ export default function CreateWidgetPage() {
   const [format, setFormat] = useState<WidgetFormat | null>(null)
   const [selectedStories, setSelectedStories] = useState<string[]>([])
   const [name, setName] = useState('')
+  const [stories, setStories] = useState<Story[]>([])
+  const [widgetBorderColor, setWidgetBorderColor] = useState('#000000')
   const router = useRouter()
 
-  // Load stories from localStorage
-  const stories = JSON.parse(localStorage.getItem('stories') || '[]')
-  const selectedStoriesData = stories.filter((s: Story) => selectedStories.includes(s.id))
+  // Load stories and widget border color
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load stories
+        const { data: storiesData, error: storiesError } = await supabase
+          .from('stories')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (storiesError) throw storiesError
+        setStories(storiesData || [])
+
+        // Load widget border color from database
+        const { data: widgetData, error: widgetError } = await supabase
+          .from('widgets')
+          .select('widget_border_color')
+          .eq('author_id', 'anonymous')
+          .single()
+
+        if (!widgetError && widgetData?.widget_border_color) {
+          setWidgetBorderColor(widgetData.widget_border_color)
+        }
+      } catch (error) {
+        console.error('Error loading data:', error)
+      }
+    }
+
+    loadData()
+  }, [])
 
   // Update selected stories when format changes
   const handleFormatChange = (newFormat: WidgetFormat) => {
@@ -177,47 +190,24 @@ export default function CreateWidgetPage() {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
     
-    const items = Array.from(selectedStoriesData) as Story[]
+    const selectedStoriesData = stories.filter(s => selectedStories.includes(s.id))
+    const items = Array.from(selectedStoriesData)
     const [reorderedItem] = items.splice(result.source.index, 1)
     items.splice(result.destination.index, 0, reorderedItem)
     
     setSelectedStories(items.map(item => item.id))
   }
 
-<<<<<<< HEAD
   const handleSave = async () => {
     try {
-      const defaultSettings = {
-        appearance: {
-          borderColor: '#000000',
-          borderWidth: 1,
-          borderStyle: 'solid',
-          borderRadius: 8,
-          backgroundColor: '#ffffff',
-          textColor: '#000000'
-        },
-        display: {
-          format: format,
-          size: 'md',
-          position: {
-            bottom: 20,
-            right: 20
-          }
-        },
-        behavior: {
-          autoPlay: false,
-          loop: false,
-          showControls: true
-        }
-      }
-
       const widget = {
         name: name.trim(),
         format,
-        story_ids: selectedStories,
-        settings: defaultSettings,
-        status: 'active',
-        user_id: (await supabase.auth.getUser()).data.user?.id
+        stories: selectedStories,
+        settings: {},
+        published: false,
+        author_id: 'anonymous',
+        widget_border_color: widgetBorderColor
       }
 
       const { error } = await supabase
@@ -230,22 +220,7 @@ export default function CreateWidgetPage() {
     } catch (error) {
       console.error('Error creating widget:', error)
       alert('Failed to create widget. Please try again.')
-=======
-  const handleSave = () => {
-    const widget = {
-      id: Math.random().toString(36).slice(2),
-      name,
-      format,
-      stories: selectedStories,
-      createdAt: new Date(),
->>>>>>> parent of 237890d (Updated and working)
     }
-
-    // Save widget to localStorage
-    const existingWidgets = JSON.parse(localStorage.getItem('widgets') || '[]')
-    localStorage.setItem('widgets', JSON.stringify([widget, ...existingWidgets]))
-
-    router.push('/widget')
   }
 
   const handleBack = () => {
@@ -260,6 +235,9 @@ export default function CreateWidgetPage() {
     ? selectedStories.length > 0
     : name.trim().length > 0
   const isLastStep = step === 3
+
+  // Get the selected stories data
+  const selectedStoriesData = stories.filter(story => selectedStories.includes(story.id))
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
@@ -352,13 +330,14 @@ export default function CreateWidgetPage() {
                         {...provided.droppableProps}
                         className="flex items-start gap-6 min-h-[80px] p-4 bg-gray-50 rounded-lg"
                       >
-                        {selectedStoriesData.map((story: Story, index: number) => (
+                        {selectedStoriesData.map((story, index) => (
                           <DraggableStory
                             key={story.id}
                             story={story}
                             format={format!}
                             index={index}
                             onRemove={(id) => handleStorySelect(id)}
+                            borderColor={widgetBorderColor}
                           />
                         ))}
                         {provided.placeholder}

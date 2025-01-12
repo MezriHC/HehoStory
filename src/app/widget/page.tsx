@@ -8,13 +8,19 @@ import { WidgetFormat } from '../components/WidgetFormatSelector'
 import BrowserPreview from '../components/BrowserPreview'
 import CodeModal from '../components/CodeModal'
 import SettingsModal from '../components/SettingsModal'
+import { supabase } from '@/lib/supabase'
+import { Story } from '../components/StoriesList'
+import React from 'react'
 
 interface Widget {
   id: string
   name: string
   format: WidgetFormat
   stories: string[]
-  createdAt: Date
+  created_at: string
+  settings?: any
+  published: boolean
+  author_id: string
 }
 
 function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
@@ -58,8 +64,8 @@ function DeleteConfirmation({ isOpen, onClose, onConfirm }: { isOpen: boolean; o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-4">
           <div className="p-3 bg-red-100 rounded-full">
             <Trash2 className="w-6 h-6 text-red-600" />
@@ -90,11 +96,62 @@ function DeleteConfirmation({ isOpen, onClose, onConfirm }: { isOpen: boolean; o
   );
 }
 
-function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete: (id: string) => void; onPreview: () => void }) {
+function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete: (id: string) => void; onPreview: () => void }): React.ReactElement {
   const [showMenu, setShowMenu] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showCode, setShowCode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [storyData, setStoryData] = useState<Story[]>([])
+
+  useEffect(() => {
+    async function loadStories() {
+      try {
+        if (!widget.stories?.length) {
+          setStoryData([])
+          return
+        }
+
+        const validStoryIds = widget.stories.filter(id => id && typeof id === 'string')
+        if (!validStoryIds.length) {
+          setStoryData([])
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('stories')
+          .select('id, title, thumbnail, content, author_id, published, created_at')
+          .in('id', validStoryIds)
+
+        if (error) {
+          console.error('Failed to fetch stories:', {
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            widgetId: widget.id
+          })
+          setStoryData([])
+          return
+        }
+
+        if (!data) {
+          console.warn('No stories found for widget:', widget.id)
+          setStoryData([])
+          return
+        }
+
+        // Cast the data to Story[] type
+        const stories = data as Story[]
+        setStoryData(stories)
+      } catch (error) {
+        console.error('Unexpected error loading stories:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          widgetId: widget.id
+        })
+        setStoryData([])
+      }
+    }
+
+    loadStories()
+  }, [widget.id, widget.stories])
 
   const formatLabel = {
     bubble: 'Bubble Stories',
@@ -106,7 +163,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 
   const handleDelete = () => {
     setShowMenu(false)
-    setShowDeleteConfirm(true)
+    onDelete(widget.id)
   }
 
   const getWidgetCode = () => {
@@ -120,17 +177,23 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
     <script async src="https://cdn.hehostory.com/widget.js"></script>`
   }
 
+  const renderPreview = () => {
+    const firstStory = storyData[0]
+
+    if (firstStory?.thumbnail) {
+      return (
+        <div className="absolute inset-0">
+          <img src={firstStory.thumbnail} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        </div>
+      )
+    }
+
+    return <WidgetFormatIcon format={widget.format} />
+  }
+
   return (
     <div className="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-gray-300 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-      <DeleteConfirmation
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={() => {
-          onDelete(widget.id)
-          setShowDeleteConfirm(false)
-        }}
-      />
-
       <CodeModal
         isOpen={showCode}
         onClose={() => setShowCode(false)}
@@ -145,7 +208,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 
       <div className="aspect-[16/9] relative bg-gray-100 overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-          <WidgetFormatIcon format={widget.format} />
+          {renderPreview()}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <button
@@ -213,40 +276,63 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 export default function WidgetsPage() {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
+  const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
 
   useEffect(() => {
-    // Load widgets from localStorage and ensure they have names
-    const savedWidgets = JSON.parse(localStorage.getItem('widgets') || '[]')
-    const widgetsWithNames = savedWidgets.map((widget: Widget) => ({
-      ...widget,
-      name: widget.name || `${widget.format} Widget`
-    }))
-    setWidgets(widgetsWithNames)
-    setIsLoading(false)
+    loadWidgets()
   }, [])
 
-  const handleDelete = (id: string) => {
-    const updatedWidgets = widgets.filter(w => w.id !== id)
-    localStorage.setItem('widgets', JSON.stringify(updatedWidgets))
-    setWidgets(updatedWidgets)
+  const loadWidgets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('widgets')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      setWidgets(data || [])
+    } catch (error) {
+      console.error('Error loading widgets:', error)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setWidgetToDelete(id)
+  }
+
+  const confirmDelete = async () => {
+    if (!widgetToDelete) return
+
+    try {
+      const { error } = await supabase
+        .from('widgets')
+        .delete()
+        .eq('id', widgetToDelete)
+
+      if (error) throw error
+
+      setWidgets(prev => prev.filter(w => w.id !== widgetToDelete))
+      setWidgetToDelete(null)
+    } catch (error) {
+      console.error('Error deleting widget:', error)
+      alert('Failed to delete widget. Please try again.')
+    }
   }
 
   const filteredWidgets = widgets.filter(widget =>
-    (widget.name || '').toLowerCase().includes(search.toLowerCase())
+    widget.name.toLowerCase().includes(search.toLowerCase())
   )
-
-  if (isLoading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white">
+      <DeleteConfirmation 
+        isOpen={widgetToDelete !== null}
+        onClose={() => setWidgetToDelete(null)}
+        onConfirm={confirmDelete}
+      />
+
       <BrowserPreview 
         isOpen={previewWidget !== null}
         onClose={() => setPreviewWidget(null)}

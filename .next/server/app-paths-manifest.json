@@ -1,7 +1,7 @@
 {
-  "/story/create/page": "app/story/create/page.js",
-  "/widget/page": "app/widget/page.js",
   "/widget/create/page": "app/widget/create/page.js",
+  "/widget/page": "app/widget/page.js",
   "/story/page": "app/story/page.js",
-  "/page": "app/page.js"
+  "/story/create/page": "app/story/create/page.js",
+  "/profile/page": "app/profile/page.js"
 }

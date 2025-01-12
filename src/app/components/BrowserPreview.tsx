@@ -4,13 +4,9 @@ import { Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
-<<<<<<< HEAD
 import { supabase } from '@/lib/supabase'
 import { Story } from './StoriesList'
 import StoryThumbnail from './widgets/StoryThumbnail'
-import { WidgetSettings } from '@/types/database.types'
-=======
->>>>>>> parent of 237890d (Updated and working)
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -18,23 +14,20 @@ interface BrowserPreviewProps {
   widget: {
     format: WidgetFormat
     stories: string[]
-    settings?: WidgetSettings
   }
 }
 
-<<<<<<< HEAD
-function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; stories: string[]; settings?: WidgetSettings }) {
+function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
   const [storyData, setStoryData] = useState<Story[]>([])
+  const [borderColor, setBorderColor] = useState('#000000')
 
-  // Apply widget settings to style
-  const widgetStyle = {
-    borderColor: settings?.appearance?.borderColor,
-    borderWidth: settings?.appearance?.borderWidth ? `${settings.appearance.borderWidth}px` : undefined,
-    borderStyle: settings?.appearance?.borderStyle || 'solid',
-    borderRadius: settings?.appearance?.borderRadius ? `${settings.appearance.borderRadius}px` : undefined,
-    backgroundColor: settings?.appearance?.backgroundColor,
-    color: settings?.appearance?.textColor,
-  }
+  useEffect(() => {
+    // Load border color from localStorage
+    const savedProfile = JSON.parse(localStorage.getItem('profile') || '{}')
+    if (savedProfile.widgetBorderColor) {
+      setBorderColor(savedProfile.widgetBorderColor)
+    }
+  }, [])
 
   useEffect(() => {
     async function loadStories() {
@@ -88,13 +81,14 @@ function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; st
   // For formats that show multiple stories
   if (['bubble', 'card', 'square'].includes(format)) {
     return (
-      <div className={containerClasses.withGap} style={widgetStyle}>
+      <div className={containerClasses.withGap}>
         {storyData.map((story) => (
           <StoryThumbnail 
             key={story.id}
             story={story}
             variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
-            size={settings?.display?.size || "md"}
+            size="md"
+            borderColor={borderColor}
           />
         ))}
       </div>
@@ -103,18 +97,14 @@ function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; st
 
   // For formats that show single story
   if (format === 'sticky') {
-    const position = {
-      bottom: settings?.display?.position?.bottom || 20,
-      right: settings?.display?.position?.right || 20
-    }
-    
     return (
       <div className={containerClasses.base}>
-        <div className="fixed" style={{ ...widgetStyle, bottom: `${position.bottom}px`, right: `${position.right}px` }}>
+        <div className="fixed bottom-20 right-20">
           <StoryThumbnail 
             story={storyData[0]}
             variant="single-bubble"
-            size={settings?.display?.size || "md"}
+            size="md"
+            borderColor={borderColor}
           />
         </div>
       </div>
@@ -125,72 +115,20 @@ function WidgetPreview({ format, stories, settings }: { format: WidgetFormat; st
   if (format === 'iframe') {
     return (
       <div className={containerClasses.base}>
-        <div 
-          className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden"
-          style={widgetStyle}
-        >
+        <div className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden">
           {storyData[0]?.thumbnail ? (
             <img src={storyData[0].thumbnail} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
-=======
-function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
-  switch (format) {
-    case 'bubble':
-      return (
-        <div className="flex gap-2 mb-8">
-          {stories.map((_, index) => (
-            <div 
-              key={index}
-              className="w-12 h-12 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-105 transform transition-transform cursor-pointer"
-            >
-              <Eye className="w-5 h-5 text-white" />
->>>>>>> parent of 237890d (Updated and working)
             </div>
-          ))}
+          )}
         </div>
-      )
-
-    case 'sticky':
-      return (
-        <div className="absolute bottom-8 right-8">
-          <div 
-            className="w-14 h-14 rounded-full bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer"
-          >
-            <Eye className="w-6 h-6 text-white" />
-          </div>
-        </div>
-      )
-
-    case 'iframe':
-      return (
-        <div className="absolute bottom-8 right-8 w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer">
-          <div className="w-full h-full flex items-center justify-center">
-            <Eye className="w-8 h-8 text-white" />
-          </div>
-        </div>
-      )
-
-    case 'card':
-    case 'square':
-      const isSquare = format === 'square'
-      return (
-        <div className="mb-8">
-          <div className={isSquare ? "flex gap-2" : "flex gap-4 overflow-x-auto pb-2"}>
-            {stories.map((_, index) => (
-              <div 
-                key={index}
-                className={`${isSquare ? 'w-[160px] aspect-square rounded-xl' : 'flex-none w-[180px] aspect-[3/4] rounded-2xl'} 
-                  bg-black/90 flex items-center justify-center shadow-lg hover:scale-[1.02] transform transition-transform cursor-pointer`}
-              >
-                <Eye className={`${isSquare ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )
+      </div>
+    )
   }
+
+  return null
 }
 
 export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPreviewProps) {
@@ -250,8 +188,8 @@ export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPrevi
               {/* Product Section */}
               <div className="grid grid-cols-2 gap-12">
                 {/* Left Column - Product Images */}
-                <div className="animate-pulse space-y-4">
-                  <div className="aspect-square bg-gray-200 rounded-xl" />
+                <div className="space-y-4">
+                  <div className="aspect-square bg-gray-100 rounded-xl" />
                   <div className="grid grid-cols-4 gap-4">
                     <div className="aspect-square bg-gray-100 rounded-lg" />
                     <div className="aspect-square bg-gray-100 rounded-lg" />
@@ -262,19 +200,19 @@ export default function BrowserPreview({ isOpen, onClose, widget }: BrowserPrevi
                 
                 {/* Right Column - Product Info */}
                 <div>
-                  {/* Title and Price - Animated */}
-                  <div className="animate-pulse">
-                    <div className="space-y-4 mb-6">
+                  {/* Title and Price */}
+                  <div>
+                    <div className="space-y-4">
                       <div className="w-3/4 h-8 bg-gray-200 rounded" />
                       <div className="w-1/2 h-6 bg-gray-100 rounded" />
                     </div>
                   </div>
                   
-                  {/* Widget Preview - No Animation */}
-                  <WidgetPreview format={widget.format} stories={widget.stories} settings={widget.settings} />
+                  {/* Widget Preview */}
+                  <WidgetPreview format={widget.format} stories={widget.stories} />
                   
-                  {/* Price and Add to Cart - Animated */}
-                  <div className="animate-pulse">
+                  {/* Price and Add to Cart */}
+                  <div>
                     <div className="space-y-4">
                       <div className="w-1/3 h-12 bg-gray-200 rounded" />
                       <div className="w-1/4 h-4 bg-gray-100 rounded" />
