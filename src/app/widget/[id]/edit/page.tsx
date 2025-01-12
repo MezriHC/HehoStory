@@ -1,7 +1,13 @@
 import { Suspense } from 'react'
 import EditWidgetClient from './EditWidgetClient'
 
-export default function EditWidgetPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string
+  }
+}
+
+export default async function EditWidgetPage({ params }: PageProps) {
   return (
     <Suspense fallback={
       <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
