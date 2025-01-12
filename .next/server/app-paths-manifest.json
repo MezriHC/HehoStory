@@ -1,8 +1,7 @@
 {
-  "/widget/page": "app/widget/page.js",
-  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
-  "/story/page": "app/story/page.js",
-  "/story/create/page": "app/story/create/page.js",
   "/integration/page": "app/integration/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/story/page": "app/story/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/widget/page": "app/widget/page.js",
+  "/widget/create/page": "app/widget/create/page.js"
 }

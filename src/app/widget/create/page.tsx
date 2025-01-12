@@ -90,6 +90,21 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
     return 'absolute -top-1 -right-1 p-1 bg-black/50 rounded-full hover:bg-black/70'
   }
 
+  const getVariant = () => {
+    switch (format) {
+      case 'bubble':
+        return 'bubble'
+      case 'card':
+        return 'card'
+      case 'sticky':
+        return 'single-bubble'
+      case 'iframe':
+        return 'story'
+      default:
+        return 'square'
+    }
+  }
+
   return (
     <Draggable draggableId={story.id} index={index}>
       {(provided: DraggableProvided) => (
@@ -102,7 +117,7 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
         >
           <StoryThumbnail
             story={story}
-            variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
+            variant={getVariant()}
             size="md"
             borderColor={borderColor}
           />

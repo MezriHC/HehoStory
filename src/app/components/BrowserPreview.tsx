@@ -1,12 +1,13 @@
 'use client'
 
-import { Eye } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
 import { supabase } from '@/lib/supabase'
 import { Story } from './StoriesList'
 import StoryThumbnail from './widgets/StoryThumbnail'
+import StoryPreview from './StoryPreview'
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -20,6 +21,9 @@ interface BrowserPreviewProps {
 function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: string[] }) {
   const [storyData, setStoryData] = useState<Story[]>([])
   const [borderColor, setBorderColor] = useState('#000000')
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
+  const [isClosing, setIsClosing] = useState(false)
+  const [selectedStoryPosition, setSelectedStoryPosition] = useState<{ top: number; right: number } | null>(null)
 
   useEffect(() => {
     // Load border color from preferences
@@ -75,7 +79,7 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
 
         const { data, error } = await supabase
           .from('stories')
-          .select('id, title, thumbnail, content, author_id, published, created_at')
+          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
           .in('id', validStoryIds)
 
         if (error) {
@@ -102,6 +106,91 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
     loadStories()
   }, [stories])
 
+  const handleStoryClick = (story: Story, event: React.MouseEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect()
+    setSelectedStoryPosition({
+      top: rect.top,
+      right: window.innerWidth - rect.right
+    })
+    setSelectedStory(story)
+  }
+
+  const handleClose = () => {
+    if (isClosing) return
+    setIsClosing(true)
+    
+    setTimeout(() => {
+      setSelectedStory(null)
+      setIsClosing(false)
+    }, 300) // Match the new animation duration
+  }
+
+  const renderStoryPreview = () => {
+    if (!selectedStory) return null
+
+    return (
+      <div 
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+        onClick={handleClose}
+      >
+        <div 
+          className={`relative w-[525px] ${isClosing ? 'pointer-events-none' : ''}`}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Navigation Arrows */}
+          <div className={`absolute inset-y-0 -left-16 -right-16 flex items-center justify-between pointer-events-none ${
+            isClosing ? 'opacity-0 transition-opacity duration-200' : ''
+          }`}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const currentIndex = storyData.findIndex(story => story.id === selectedStory?.id)
+                if (currentIndex > 0) {
+                  setSelectedStory(storyData[currentIndex - 1])
+                } else {
+                  handleClose()
+                }
+              }}
+              className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/30 transition-colors"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const currentIndex = storyData.findIndex(story => story.id === selectedStory?.id)
+                if (currentIndex < storyData.length - 1) {
+                  setSelectedStory(storyData[currentIndex + 1])
+                } else {
+                  handleClose()
+                }
+              }}
+              className="pointer-events-auto w-12 h-12 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/30 transition-colors"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          </div>
+
+          <div className={`w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden ${
+            isClosing ? (
+              selectedStoryPosition?.top && selectedStoryPosition.top < window.innerHeight / 2
+                ? 'animate-close-to-top-right'
+                : selectedStoryPosition?.top
+                ? 'animate-close-to-bottom-right'
+                : 'animate-close-to-center-right'
+            ) : ''
+          }`}>
+            <StoryPreview 
+              items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+              profileImage={selectedStory.profile_image}
+              profileName={selectedStory.profile_name}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Common styles for all formats
   const containerClasses = {
     base: "",
@@ -111,50 +200,59 @@ function WidgetPreview({ format, stories }: { format: WidgetFormat; stories: str
   // For formats that show multiple stories
   if (['bubble', 'card', 'square'].includes(format)) {
     return (
-      <div className={containerClasses.withGap}>
-        {storyData.map((story) => (
-          <StoryThumbnail 
-            key={story.id}
-            story={story}
-            variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
-            size="md"
-            borderColor={borderColor}
-          />
-        ))}
-      </div>
+      <>
+        <div className={containerClasses.withGap}>
+          {storyData.map((story) => (
+            <div key={story.id} onClick={(e) => handleStoryClick(story, e)}>
+              <StoryThumbnail 
+                story={story}
+                variant={format === 'bubble' ? 'bubble' : format === 'card' ? 'card' : 'square'}
+                size="md"
+                borderColor={borderColor}
+              />
+            </div>
+          ))}
+        </div>
+        {renderStoryPreview()}
+      </>
     )
   }
 
   // For formats that show single story
   if (format === 'sticky') {
     return (
-      <div className={containerClasses.base}>
-        <div className="fixed bottom-20 right-20">
-          <StoryThumbnail 
-            story={storyData[0]}
-            variant="single-bubble"
-            size="md"
-            borderColor={borderColor}
-          />
+      <>
+        <div className={containerClasses.base}>
+          <div className="absolute bottom-6 right-6" onClick={(e) => storyData[0] && handleStoryClick(storyData[0], e)}>
+            <StoryThumbnail 
+              story={storyData[0]}
+              variant="single-bubble"
+              size="md"
+              borderColor={borderColor}
+            />
+          </div>
         </div>
-      </div>
+        {renderStoryPreview()}
+      </>
     )
   }
 
-  // For iframe format
+  // For iframe format (now using story variant)
   if (format === 'iframe') {
     return (
-      <div className={containerClasses.base}>
-        <div className="w-[320px] h-[500px] bg-black/90 rounded-xl shadow-lg overflow-hidden">
-          {storyData[0]?.thumbnail ? (
-            <img src={storyData[0].thumbnail} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Eye className="w-8 h-8 text-white" />
-            </div>
-          )}
+      <>
+        <div className={containerClasses.base}>
+          <div className="absolute bottom-8 right-8" onClick={(e) => storyData[0] && handleStoryClick(storyData[0], e)}>
+            <StoryThumbnail 
+              story={storyData[0]}
+              variant="story"
+              size="md"
+              borderColor={borderColor}
+            />
+          </div>
         </div>
-      </div>
+        {renderStoryPreview()}
+      </>
     )
   }
 

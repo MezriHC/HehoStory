@@ -2,7 +2,7 @@ import { Story } from '../StoriesList'
 
 interface StoryThumbnailProps {
   story?: Story
-  variant?: 'bubble' | 'card' | 'square' | 'single-bubble'
+  variant?: 'bubble' | 'card' | 'square' | 'single-bubble' | 'story'
   size?: 'sm' | 'md' | 'lg'
   showPlayIcon?: boolean
   className?: string
@@ -53,6 +53,23 @@ export default function StoryThumbnail({
         icon: 'w-10 h-10'
       }
     },
+    'story': {
+      sm: {
+        outer: 'w-[180px] h-[320px]',
+        inner: 'w-[174px] h-[314px]',
+        icon: 'w-10 h-10'
+      },
+      md: {
+        outer: 'w-[200px] h-[356px]',
+        inner: 'w-[194px] h-[350px]',
+        icon: 'w-12 h-12'
+      },
+      lg: {
+        outer: 'w-[220px] h-[391px]',
+        inner: 'w-[214px] h-[385px]',
+        icon: 'w-14 h-14'
+      }
+    },
     card: {
       sm: {
         outer: 'w-[96px] h-[128px]',
@@ -93,14 +110,16 @@ export default function StoryThumbnail({
     bubble: 'rounded-full',
     card: 'rounded-lg',
     square: 'rounded-lg',
-    'single-bubble': 'rounded-full'
+    'single-bubble': 'rounded-full',
+    'story': 'rounded-2xl'
   }
 
   const innerVariantClasses = {
     bubble: 'rounded-full',
     card: 'rounded-md',
     square: 'rounded-md',
-    'single-bubble': 'rounded-full'
+    'single-bubble': 'rounded-full',
+    'story': 'rounded-xl'
   }
 
   const selectedSize = sizes[variant][size]
@@ -111,7 +130,7 @@ export default function StoryThumbnail({
     <div className={`relative ${className} transition-transform duration-200 hover:-translate-y-0.5 cursor-pointer`}>
       {/* Outer container */}
       <div 
-        className={`relative ${selectedSize.outer} ${roundedClass} border-2`} 
+        className={`relative ${selectedSize.outer} ${roundedClass} border-2 shadow-lg`} 
         style={{ borderColor }}
       >
         {/* Inner container */}

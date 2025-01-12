@@ -23,8 +23,11 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [isClosing, setIsClosing] = useState(false)
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const startTimeRef = useRef<number>(Date.now())
+  const elapsedBeforePauseRef = useRef<number>(0)
 
   // Only start after component is mounted to avoid hydration issues
   useEffect(() => {
@@ -36,6 +39,8 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
 
   const resetProgress = useCallback(() => {
     setProgress(0)
+    elapsedBeforePauseRef.current = 0
+    startTimeRef.current = Date.now()
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current)
       progressTimerRef.current = null
@@ -55,27 +60,53 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
 
   const goToPrevStory = useCallback(() => {
     if (currentIndex > 0) {
+      setProgress(0)
       setCurrentIndex(prev => prev - 1)
-      resetProgress()
+      startTimeRef.current = Date.now()
+      elapsedBeforePauseRef.current = 0
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current)
+        progressTimerRef.current = null
+      }
     }
-  }, [currentIndex, resetProgress])
+  }, [currentIndex])
 
   useEffect(() => {
-    if (!currentItem || isPaused) return
+    if (!currentItem) return
+
+    if (isPaused) {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current)
+        progressTimerRef.current = null
+      }
+      if (currentItem.type === 'image') {
+        elapsedBeforePauseRef.current = Date.now() - startTimeRef.current
+      }
+      return
+    }
 
     if (currentItem.type === 'video' && videoRef.current) {
       // For videos, use the video duration and timeupdate event
-      videoRef.current.currentTime = 0
       videoRef.current.play().catch(console.error)
     } else {
       // For images, use a timer
-      resetProgress()
-      const startTime = Date.now()
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current)
+      }
+
+      // Si on reprend après une pause, on ajuste le temps de départ
+      if (elapsedBeforePauseRef.current > 0) {
+        startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
+      } else {
+        startTimeRef.current = Date.now()
+      }
+      
       const timer = setInterval(() => {
-        const elapsed = Date.now() - startTime
+        const elapsed = Date.now() - startTimeRef.current
         const newProgress = (elapsed / STORY_DURATION) * PROGRESS_BAR_WIDTH
 
         if (newProgress >= PROGRESS_BAR_WIDTH) {
+          elapsedBeforePauseRef.current = 0
           resetProgress()
           goToNextStory()
         } else {
@@ -119,6 +150,14 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
     }
   }, [isMuted])
 
+  const handleClose = useCallback(() => {
+    setIsClosing(true)
+    setTimeout(() => {
+      setIsClosing(false)
+      // Add your close callback here if needed
+    }, 500) // Match the animation duration
+  }, [])
+
   if (!mounted || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-8 text-center">
@@ -138,7 +177,9 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
   if (!currentItem) return null
 
   return (
-    <div className="relative w-full h-full bg-black aspect-[9/16]">
+    <div className={`relative w-full h-full bg-black aspect-[9/16] ${
+      isClosing ? 'animate-close-to-center-right' : ''
+    }`}>
       {/* Progress bars */}
       <div className="absolute top-0 left-0 right-0 p-2 flex gap-1 z-20 bg-gradient-to-b from-black/50 via-black/25 to-transparent">
         {items.map((item, index) => (
@@ -147,7 +188,9 @@ export default function StoryPreview({ items, profileImage, profileName }: Story
             className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
           >
             <div
-              className="h-full bg-white rounded-full transition-all duration-200 ease-linear"
+              className={`h-full bg-white rounded-full ${
+                index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
+              }`}
               style={{
                 width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
               }}
