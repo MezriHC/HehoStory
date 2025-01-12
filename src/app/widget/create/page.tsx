@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Save, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, use } from 'react'
 import { Story } from '../../components/StoriesList'
 import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetFormatSelector'
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DroppableProvided, DropResult } from '@hello-pangea/dnd'
@@ -136,19 +136,7 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
   )
 }
 
-interface CreateWidgetPageProps {
-  initialWidget?: {
-    id: string
-    name: string
-    format: WidgetFormat
-    stories: string[]
-    settings: any
-    published: boolean
-    author_id: string
-  }
-}
-
-export default function CreateWidgetPage({ initialWidget }: CreateWidgetPageProps) {
+function WidgetEditor({ initialWidget }: { initialWidget?: any }) {
   const [step, setStep] = useState(1)
   const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || null)
   const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.stories || [])
@@ -255,7 +243,6 @@ export default function CreateWidgetPage({ initialWidget }: CreateWidgetPageProp
       router.push('/widget')
     } catch (error) {
       console.error('Error saving widget:', error)
-      alert('Failed to save widget. Please try again.')
     }
   }
 
@@ -393,5 +380,26 @@ export default function CreateWidgetPage({ initialWidget }: CreateWidgetPageProp
         </div>
       </div>
     </div>
+  )
+}
+
+interface PageProps {
+  searchParams: Promise<{
+    widget?: string
+  }>
+}
+
+export default function CreateWidgetPage({ searchParams }: PageProps) {
+  const resolvedParams = use(searchParams)
+  const initialWidget = resolvedParams.widget ? JSON.parse(resolvedParams.widget) : null
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    }>
+      <WidgetEditor initialWidget={initialWidget} />
+    </Suspense>
   )
 } 

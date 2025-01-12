@@ -3,7 +3,7 @@
 import { ArrowLeft, Save, Upload, User } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, Suspense } from 'react'
 import MediaGrid, { MediaItem } from '../../components/MediaGrid'
 import StoryPreview from '../../components/StoryPreview'
 import { supabase } from '@/lib/supabase'
@@ -90,7 +90,7 @@ async function compressImage(dataUrl: string): Promise<string> {
   });
 }
 
-export default function CreateStoryPage() {
+function StoryEditor() {
   const [title, setTitle] = useState('')
   const [profileName, setProfileName] = useState('')
   const [profileImage, setProfileImage] = useState('')
@@ -446,5 +446,17 @@ export default function CreateStoryPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CreateStoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    }>
+      <StoryEditor />
+    </Suspense>
   )
 } 

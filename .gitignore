@@ -13,6 +13,9 @@ yarn-error.log
 # Build output
 dist/
 build/
+.next/
+out/
+.vercel/
 
 # IDE and editor files
 .idea/

@@ -44,5 +44,5 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     return null
   }
 
-  return <CreateWidgetPage initialWidget={widget} />
+  return <CreateWidgetPage searchParams={Promise.resolve({ widget: JSON.stringify(widget) })} />
 } 
