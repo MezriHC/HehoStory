@@ -8,7 +8,7 @@ import MediaGrid, { MediaItem } from '../../components/MediaGrid'
 import StoryPreview from '../../components/StoryPreview'
 import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Story } from '@/lib/supabase'
+import type { Story } from '@/types'
 
 interface SaveStoryData {
   title: string
