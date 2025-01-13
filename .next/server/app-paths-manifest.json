@@ -1,3 +1,15 @@
 {
-  "/login/page": "app/login/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/stories/route": "app/api/stories/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/integration/page": "app/integration/page.js",
+  "/login/page": "app/login/page.js",
+  "/story/create/page": "app/story/create/page.js",
+  "/page": "app/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/story/page": "app/story/page.js",
+  "/widget/create/page": "app/widget/create/page.js",
+  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
+  "/widget/page": "app/widget/page.js",
+  "/auth/callback/route": "app/auth/callback/route.js"
 }
