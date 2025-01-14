@@ -1,44 +1,46 @@
 'use client'
 
-import { Layers, Plus, FolderIcon } from 'lucide-react'
+import { Layers, Plus } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import StoriesList, { Story } from '../components/StoriesList'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Loader from '@/app/components/Loader'
 import { useState, useEffect } from 'react'
-import FolderView from '../components/FolderView'
-
-// Fetch function for stories
-const fetchStories = async () => {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    throw error
-  }
-
-  return data || []
-}
+import { useAuth } from '@/hooks/useAuth'
 
 export default function StoriesPage() {
+  const router = useRouter()
+  const { userId, loading: authLoading, supabase } = useAuth()
   const queryClient = useQueryClient()
-  const [showFolders, setShowFolders] = useState(false)
   const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+      return
+    }
+
     async function loadStories() {
+      if (!userId) return
+
       try {
+        console.log('Debug - Loading stories for user:', userId)
         const { data, error } = await supabase
           .from('stories')
           .select('*')
+          .eq('author_id', userId)
           .order('created_at', { ascending: false })
 
-        if (error) throw error
+        if (error) {
+          console.error('Supabase error:', error)
+          throw error
+        }
+
+        console.log('Debug - Stories loaded:', data)
         setStories(data || [])
       } catch (error) {
         console.error('Error loading stories:', error)
@@ -48,35 +50,17 @@ export default function StoriesPage() {
     }
 
     loadStories()
-  }, [])
-
-  // Mutation for deleting stories
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('stories')
-        .delete()
-        .eq('id', id)
-      
-      if (error) throw error
-    },
-    onSuccess: (_, deletedId) => {
-      // Update cache after successful deletion
-      queryClient.setQueryData(['stories'], (oldStories: Story[] = []) => 
-        oldStories.filter(story => story.id !== deletedId)
-      )
-    },
-    onError: (error: Error) => {
-      console.error('Error deleting story:', error)
-    }
-  })
+  }, [userId, authLoading, supabase])
 
   const handleDelete = async (id: string) => {
+    if (!userId) return
+
     try {
       const { error } = await supabase
         .from('stories')
         .delete()
         .eq('id', id)
+        .eq('author_id', userId)
 
       if (error) throw error
 
@@ -86,27 +70,8 @@ export default function StoriesPage() {
     }
   }
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return <Loader />
-  }
-
-  if (showFolders) {
-    return (
-      <FolderView
-        type="story"
-        onCreateFolder={(name) => {
-          // Pour l'instant, on ne fait rien avec le nom du dossier
-          // car on utilise le localStorage dans le composant FolderView
-        }}
-        onRenameFolder={(id, name) => {
-          // Pour l'instant, on ne fait rien avec le renommage
-        }}
-        onDeleteFolder={(id) => {
-          // Pour l'instant, on ne fait rien avec la suppression
-        }}
-        onBack={() => setShowFolders(false)}
-      />
-    )
   }
 
   if (stories.length === 0) {
@@ -122,14 +87,6 @@ export default function StoriesPage() {
             </div>
 
             <div className="flex gap-4">
-              <button
-                onClick={() => setShowFolders(true)}
-                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
-                <FolderIcon className="w-4 h-4 mr-2" />
-                Dossiers
-              </button>
-
               <Link
                 href="/story/create"
                 className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
@@ -163,14 +120,6 @@ export default function StoriesPage() {
           </div>
 
           <div className="flex gap-4">
-            <button
-              onClick={() => setShowFolders(true)}
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              <FolderIcon className="w-4 h-4 mr-2" />
-              Dossiers
-            </button>
-
             <Link
               href="/story/create"
               className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"

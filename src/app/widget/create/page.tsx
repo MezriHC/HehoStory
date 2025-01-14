@@ -9,6 +9,7 @@ import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetForma
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DroppableProvided, DropResult } from '@hello-pangea/dnd'
 import { supabase } from '@/lib/supabase'
 import StoryThumbnail from '../../components/widgets/StoryThumbnail'
+import { useAuth } from '@/hooks/useAuth'
 
 interface StorySelector {
   stories: Story[]
@@ -137,82 +138,86 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
 }
 
 function WidgetEditor({ initialWidget }: { initialWidget?: any }) {
-  const [step, setStep] = useState(1)
-  const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || null)
-  const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.stories || [])
-  const [name, setName] = useState(initialWidget?.name || '')
-  const [stories, setStories] = useState<Story[]>([])
-  const [widgetBorderColor, setWidgetBorderColor] = useState('#000000')
+  const { userId, loading: authLoading, supabase } = useAuth()
   const router = useRouter()
+  const [name, setName] = useState('')
+  const [format, setFormat] = useState<WidgetFormat | null>(null)
+  const [selectedStories, setSelectedStories] = useState<string[]>([])
+  const [step, setStep] = useState(1)
+  const [stories, setStories] = useState<Story[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [widgetBorderColor, setWidgetBorderColor] = useState('#000000')
 
-  // Load stories and widget border color
   useEffect(() => {
-    const loadData = async () => {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+    }
+  }, [authLoading, userId, router])
+
+  useEffect(() => {
+    async function loadData() {
       try {
-        // Load stories
+        // Charger les stories
         const { data: storiesData, error: storiesError } = await supabase
           .from('stories')
           .select('*')
+          .eq('author_id', userId)
           .order('created_at', { ascending: false })
 
         if (storiesError) throw storiesError
         setStories(storiesData || [])
 
-        // Load widget border color from preferences
-        const { data: prefData, error: prefError } = await supabase
+        // Charger les préférences
+        const { data: prefsData, error: prefsError } = await supabase
           .from('preferences')
           .select('widget_border_color')
+          .eq('user_id', userId)
           .single()
 
-        if (!prefError && prefData?.widget_border_color) {
-          setWidgetBorderColor(prefData.widget_border_color)
+        if (!prefsError && prefsData) {
+          setWidgetBorderColor(prefsData.widget_border_color)
         }
       } catch (error) {
         console.error('Error loading data:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    loadData()
-  }, [])
+    if (userId) {
+      loadData()
+    }
+  }, [userId, supabase])
 
-  // Update selected stories when format changes
   const handleFormatChange = (newFormat: WidgetFormat) => {
     setFormat(newFormat)
-    // If switching to a single-story format, keep only the first story if any are selected
-    if (newFormat === 'sticky' || newFormat === 'iframe') {
-      setSelectedStories(prev => prev.length > 0 ? [prev[0]] : [])
-    }
   }
 
   const handleStorySelect = (id: string) => {
-    if (format === 'sticky' || format === 'iframe') {
-      // For removing a story in single-story formats
-      if (selectedStories.includes(id)) {
-        setSelectedStories([])
-      } else {
-        setSelectedStories([id])
+    setSelectedStories(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(storyId => storyId !== id)
       }
-    } else {
-      setSelectedStories(prev => 
-        prev.includes(id)
-          ? prev.filter(storyId => storyId !== id)
-          : [...prev, id]
-      )
-    }
+      return [...prev, id]
+    })
   }
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
-    
-    const selectedStoriesData = stories.filter(s => selectedStories.includes(s.id))
-    const items = Array.from(selectedStoriesData)
+
+    const items = Array.from(selectedStories)
     const [reorderedItem] = items.splice(result.source.index, 1)
     items.splice(result.destination.index, 0, reorderedItem)
-    
-    setSelectedStories(items.map(item => item.id))
+
+    setSelectedStories(items)
   }
 
   const handleSave = async () => {
+    if (!userId) {
+      console.error('No user ID available')
+      return
+    }
+
     try {
       const widget = {
         name: name.trim(),
@@ -220,11 +225,10 @@ function WidgetEditor({ initialWidget }: { initialWidget?: any }) {
         stories: selectedStories,
         settings: initialWidget?.settings || {},
         published: initialWidget?.published || false,
-        author_id: 'anonymous'
+        author_id: userId
       }
 
       if (initialWidget) {
-        // Update existing widget
         const { error } = await supabase
           .from('widgets')
           .update(widget)
@@ -232,7 +236,6 @@ function WidgetEditor({ initialWidget }: { initialWidget?: any }) {
 
         if (error) throw error
       } else {
-        // Create new widget
         const { error } = await supabase
           .from('widgets')
           .insert([widget])
@@ -243,6 +246,7 @@ function WidgetEditor({ initialWidget }: { initialWidget?: any }) {
       router.push('/widget')
     } catch (error) {
       console.error('Error saving widget:', error)
+      alert('Failed to save widget. Please try again.')
     }
   }
 

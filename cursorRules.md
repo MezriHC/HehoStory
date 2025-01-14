@@ -47,7 +47,6 @@ HehoStory est un outil qui permet aux marques e-commerce de créer des "stories"
 - React 18.2.0 - Bibliothèque UI
 - TypeScript - Typage statique
 - TailwindCSS 3.4.1 - Framework CSS utilitaire
-- Cloudflare Pages - Hébergement et déploiement
 - Supabase - Base de données et backend
 - Heroicons - Bibliothèque d'icônes
 - React Dropzone - Gestion des uploads de fichiers

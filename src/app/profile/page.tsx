@@ -7,6 +7,7 @@ import Toast from '../components/Toast'
 import WidgetPreview from '../components/widgets/WidgetPreview'
 import ColorPicker from '../components/widgets/ColorPicker'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Profile {
   name: string
@@ -43,6 +44,7 @@ async function compressImage(dataUrl: string): Promise<string> {
 }
 
 export default function ProfilePage() {
+  const { userId, loading: authLoading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState<Profile>({
     name: '',
@@ -55,51 +57,106 @@ export default function ProfilePage() {
   const supabase = createClientComponentClient()
 
   useEffect(() => {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+    }
+  }, [authLoading, userId, router])
+
+  useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !userId) return
 
     const loadProfile = async () => {
-      // Vérifier la session
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/auth/signin')
-        return
-      }
+      try {
+        // Charger le profil
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
 
-      // Charger le profil
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
+        if (profileData) {
+          setProfile(prev => ({
+            ...prev,
+            name: profileData.full_name || '',
+            picture: profileData.avatar_url
+          }))
+        }
 
-      if (profileData) {
-        setProfile(prev => ({
-          ...prev,
-          name: profileData.full_name || '',
-          picture: profileData.avatar_url
-        }))
-      }
+        // Charger ou créer les préférences
+        const { data: prefData, error: prefError } = await supabase
+          .from('preferences')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
 
-      // Charger les préférences
-      const { data: prefData } = await supabase
-        .from('preferences')
-        .select('widget_border_color')
-        .single()
+        if (prefError) {
+          // Si les préférences n'existent pas, les créer
+          const { data: newPrefData, error: insertError } = await supabase
+            .from('preferences')
+            .insert([
+              {
+                user_id: userId,
+                widget_border_color: '#000000'
+              }
+            ])
+            .select()
+            .single()
 
-      if (prefData?.widget_border_color) {
-        setProfile(prev => ({
-          ...prev,
-          widgetBorderColor: prefData.widget_border_color
-        }))
+          if (!insertError && newPrefData) {
+            setProfile(prev => ({
+              ...prev,
+              widgetBorderColor: newPrefData.widget_border_color
+            }))
+          }
+        } else if (prefData) {
+          setProfile(prev => ({
+            ...prev,
+            widgetBorderColor: prefData.widget_border_color
+          }))
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error)
       }
     }
 
     loadProfile()
-  }, [mounted, supabase, router])
+  }, [mounted, userId, supabase])
+
+  const handleSave = async () => {
+    if (!userId) return
+
+    try {
+      // Mettre à jour le profil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.name,
+          avatar_url: profile.picture
+        })
+        .eq('id', userId)
+
+      if (profileError) throw profileError
+
+      // Mettre à jour les préférences
+      const { error: prefError } = await supabase
+        .from('preferences')
+        .upsert({
+          user_id: userId,
+          widget_border_color: profile.widgetBorderColor
+        })
+
+      if (prefError) throw prefError
+
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+    } catch (error) {
+      console.error('Error saving profile:', error)
+    }
+  }
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -114,42 +171,6 @@ export default function ProfilePage() {
         }))
       }
       reader.readAsDataURL(file)
-    }
-  }
-
-  const handleSave = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      // Mettre à jour le profil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profile.name,
-          avatar_url: profile.picture
-        })
-        .eq('id', session.user.id)
-
-      if (profileError) throw profileError
-
-      // Mettre à jour les préférences
-      const { error: prefError } = await supabase
-        .from('preferences')
-        .upsert({ 
-          widget_border_color: profile.widgetBorderColor,
-          id: session.user.id
-        })
-
-      if (prefError) throw prefError
-      
-      setShowToast(true)
-      setTimeout(() => {
-        router.push('/story')
-      }, 1500)
-    } catch (error: any) {
-      console.error('Save error:', error.message || error)
-      alert(error.message || 'Failed to save profile. Please try again.')
     }
   }
 

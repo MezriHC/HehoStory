@@ -1,6 +1,6 @@
 'use client'
 
-import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, FolderIcon } from 'lucide-react'
+import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import EmptyState from '../components/EmptyState'
@@ -12,7 +12,6 @@ import { supabase } from '@/lib/supabase'
 import { Story } from '../components/StoriesList'
 import React from 'react'
 import Loader from '@/app/components/Loader'
-import FolderView from '../components/FolderView'
 
 interface Widget {
   id: string
@@ -276,7 +275,6 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 }
 
 export default function WidgetsPage() {
-  const [showFolders, setShowFolders] = useState(false)
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [search, setSearch] = useState('')
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
@@ -334,25 +332,6 @@ export default function WidgetsPage() {
     return <Loader />
   }
 
-  if (showFolders) {
-    return (
-      <FolderView
-        type="widget"
-        onCreateFolder={(name) => {
-          // Pour l'instant, on ne fait rien avec le nom du dossier
-          // car on utilise le localStorage dans le composant FolderView
-        }}
-        onRenameFolder={(id, name) => {
-          // Pour l'instant, on ne fait rien avec le renommage
-        }}
-        onDeleteFolder={(id) => {
-          // Pour l'instant, on ne fait rien avec la suppression
-        }}
-        onBack={() => setShowFolders(false)}
-      />
-    )
-  }
-
   if (widgets.length === 0) {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-white">
@@ -366,14 +345,6 @@ export default function WidgetsPage() {
             </div>
 
             <div className="flex gap-4">
-              <button
-                onClick={() => setShowFolders(true)}
-                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
-                <FolderIcon className="w-4 h-4 mr-2" />
-                Dossiers
-              </button>
-
               <Link
                 href="/widget/create"
                 className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
@@ -419,14 +390,6 @@ export default function WidgetsPage() {
           </div>
 
           <div className="flex gap-4">
-            <button
-              onClick={() => setShowFolders(true)}
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              <FolderIcon className="w-4 h-4 mr-2" />
-              Dossiers
-            </button>
-
             <Link
               href="/widget/create"
               className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"

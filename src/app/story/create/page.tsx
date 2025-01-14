@@ -9,6 +9,7 @@ import StoryPreview from '../../components/StoryPreview'
 import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Story } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 
 interface SaveStoryData {
   title: string
@@ -91,6 +92,7 @@ async function compressImage(dataUrl: string): Promise<string> {
 }
 
 function StoryEditor() {
+  const { userId, loading: authLoading, supabase } = useAuth()
   const [title, setTitle] = useState('')
   const [profileName, setProfileName] = useState('')
   const [profileImage, setProfileImage] = useState('')
@@ -104,6 +106,87 @@ function StoryEditor() {
   const searchParams = useSearchParams()
   const editId = searchParams.get('edit')
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+    }
+  }, [authLoading, userId, router])
+
+  const handleSave = async () => {
+    if (!userId) {
+      console.error('No user ID available')
+      return
+    }
+
+    try {
+      // Process media items in smaller chunks
+      const processedMediaItems = []
+      for (const item of mediaItems) {
+        let url = item.url
+        if (item.file) {
+          const dataUrl = await getImageDataUrl(item.file)
+          // Compress if it's an image
+          if (item.type === 'image') {
+            url = await compressImage(dataUrl)
+          } else {
+            url = dataUrl
+          }
+        }
+        processedMediaItems.push({
+          id: item.id,
+          type: item.type,
+          url,
+          file: null
+        })
+      }
+
+      // Get and compress thumbnail
+      const firstItem = mediaItems[0]
+      let thumbnail = firstItem.url
+      if (firstItem.file) {
+        const dataUrl = firstItem.type === 'video' 
+          ? await getVideoThumbnail(firstItem.file)
+          : await getImageDataUrl(firstItem.file)
+        thumbnail = await compressImage(dataUrl)
+      }
+
+      const story = {
+        title: title.trim(),
+        content: JSON.stringify({ mediaItems: processedMediaItems }),
+        thumbnail,
+        profile_name: profileName.trim() || null,
+        profile_image: profileImage || null,
+        published: false,
+        author_id: userId,
+        tags: []
+      }
+
+      console.log('Debug - Story data:', story)
+
+      // Utiliser directement le client Supabase du hook useAuth
+      const { data, error } = await supabase
+        .from('stories')
+        .insert([story])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+
+      console.log('Debug - Success:', data)
+      router.push('/story')
+    } catch (error) {
+      console.error('Error saving story:', error)
+      if (error instanceof Error) {
+        alert(error.message)
+      } else {
+        alert('Failed to save story. Please try again.')
+      }
+    }
+  }
 
   // Query for story data when editing
   const { data: storyData } = useQuery({
@@ -120,42 +203,6 @@ function StoryEditor() {
       return data
     },
     enabled: !!editId,
-  })
-
-  // Save mutation
-  const saveMutation = useMutation({
-    mutationFn: async (story: SaveStoryData) => {
-      if (editId) {
-        const { data, error } = await supabase
-          .from('stories')
-          .update(story)
-          .eq('id', editId)
-          .select()
-          .single()
-
-        if (error) throw error
-        return data
-      } else {
-        const { data, error } = await supabase
-          .from('stories')
-          .insert([story])
-          .select()
-          .single()
-
-        if (error) throw error
-        return data
-      }
-    },
-    onSuccess: (data: Story) => {
-      queryClient.setQueryData(['story', data.id], data)
-      queryClient.invalidateQueries({ queryKey: ['stories'] })
-      Object.values(localUrls).forEach(url => URL.revokeObjectURL(url))
-      router.push('/story')
-    },
-    onError: (error: Error) => {
-      console.error('Error saving story:', error)
-      alert(error.message || 'Failed to save story. Please try again.')
-    }
   })
 
   // Initialize data
@@ -230,66 +277,6 @@ function StoryEditor() {
 
   const handleReorderMedia = (items: MediaItem[]) => {
     setMediaItems(items)
-  }
-
-  const handleSave = async () => {
-    if (!title.trim()) {
-      alert('Please enter a story title')
-      return
-    }
-    if (mediaItems.length === 0) {
-      alert('Please add at least one media item')
-      return
-    }
-
-    try {
-      // Process media items in smaller chunks
-      const processedMediaItems = []
-      for (const item of mediaItems) {
-        let url = item.url
-        if (item.file) {
-          const dataUrl = await getImageDataUrl(item.file)
-          // Compress if it's an image
-          if (item.type === 'image') {
-            url = await compressImage(dataUrl)
-          } else {
-            url = dataUrl
-          }
-        }
-        processedMediaItems.push({
-          id: item.id,
-          type: item.type,
-          url,
-          file: null
-        })
-      }
-
-      // Get and compress thumbnail
-      const firstItem = mediaItems[0]
-      let thumbnail = firstItem.url
-      if (firstItem.file) {
-        const dataUrl = firstItem.type === 'video' 
-          ? await getVideoThumbnail(firstItem.file)
-          : await getImageDataUrl(firstItem.file)
-        thumbnail = await compressImage(dataUrl)
-      }
-
-      const story = {
-        title: title.trim(),
-        content: JSON.stringify({ mediaItems: processedMediaItems }),
-        thumbnail,
-        profile_name: profileName.trim() || null,
-        profile_image: profileImage || null,
-        published: false,
-        author_id: 'anonymous',
-        tags: []
-      }
-
-      saveMutation.mutate(story)
-    } catch (error) {
-      console.error('Error saving story:', error instanceof Error ? error.message : error)
-      alert(error instanceof Error ? error.message : 'Failed to save story. Please try again.')
-    }
   }
 
   // Show loading state while fetching story data
@@ -450,6 +437,53 @@ function StoryEditor() {
 }
 
 export default function CreateStoryPage() {
+  const { userId, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [title, setTitle] = useState('')
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [profileName, setProfileName] = useState<string | null>(null)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+    }
+  }, [authLoading, userId, router])
+
+  const handleSave = async () => {
+    if (!userId) {
+      console.error('No user ID available')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const storyData: SaveStoryData = {
+        title: title.trim(),
+        content: JSON.stringify({ mediaItems }),
+        thumbnail: mediaItems[0]?.url || '',
+        profile_name: profileName,
+        profile_image: profileImage,
+        published: false,
+        author_id: userId,
+        tags: []
+      }
+
+      const { error } = await supabase
+        .from('stories')
+        .insert([storyData])
+
+      if (error) throw error
+
+      router.push('/story')
+    } catch (error) {
+      console.error('Error saving story:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
