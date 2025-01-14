@@ -3,43 +3,42 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  try {
-    // Créer un client Supabase avec les cookies
-    const res = NextResponse.next()
-    const supabase = createMiddlewareClient({ req: request, res })
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req: request, res })
+  
+  // Rafraîchit la session si elle existe
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-    // Récupérer la session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+  // Liste des routes publiques
+  const publicRoutes = ['/auth/signin']
+  const isPublicRoute = publicRoutes.includes(request.nextUrl.pathname)
 
-    // URLs publiques qui ne nécessitent pas d'authentification
-    const isPublicUrl = 
-      request.nextUrl.pathname === '/login' ||
-      request.nextUrl.pathname === '/auth/callback' ||
-      request.nextUrl.pathname.startsWith('/_next') ||
-      request.nextUrl.pathname.startsWith('/api')
-
-    // Si pas de session et URL protégée, rediriger vers login
-    if (!session && !isPublicUrl) {
-      return NextResponse.redirect('https://hehostory.vercel.app/login')
-    }
-
-    // Si session et sur la page login, rediriger vers home
-    if (session && request.nextUrl.pathname === '/login') {
-      return NextResponse.redirect('https://hehostory.vercel.app')
-    }
-
-    return res
-  } catch (error) {
-    console.error('Erreur middleware:', error)
-    return NextResponse.redirect('https://hehostory.vercel.app/login')
+  // Redirection vers la page de connexion si l'utilisateur n'est pas authentifié
+  if (!session && !isPublicRoute && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+    const redirectUrl = new URL('/auth/signin', request.url)
+    return NextResponse.redirect(redirectUrl)
   }
+
+  // Redirection vers le dashboard si l'utilisateur est authentifié et essaie d'accéder à une page publique
+  if (session && isPublicRoute) {
+    const redirectUrl = new URL('/dashboard', request.url)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  return res
 }
 
-// Ne pas appliquer le middleware sur certaines routes
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 } 

@@ -1,10 +1,13 @@
 import './globals.css'
-import { AuthProvider } from '@/providers/AuthProvider'
-import QueryProvider from '@/providers/QueryProvider'
+import { Inter } from 'next/font/google'
+import HeaderWrapper from '../components/HeaderWrapper'
+import Providers from './providers'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'HehoStory',
-  description: 'Application avec authentification Google',
+  description: 'Create and manage your stories',
 }
 
 export default function RootLayout({
@@ -13,13 +16,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr">
-      <body>
-        <QueryProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </QueryProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        <Providers>
+          <HeaderWrapper />
+          {children}
+        </Providers>
       </body>
     </html>
   )

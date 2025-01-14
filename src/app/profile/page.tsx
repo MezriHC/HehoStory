@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import Toast from '../components/Toast'
 import WidgetPreview from '../components/widgets/WidgetPreview'
 import ColorPicker from '../components/widgets/ColorPicker'
-import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface Profile {
   name: string
@@ -52,6 +52,7 @@ export default function ProfilePage() {
   const [showToast, setShowToast] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     setMounted(true)
@@ -60,23 +61,45 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!mounted) return
 
-    // Load widget border color from preferences
-    const loadBorderColor = async () => {
-      const { data } = await supabase
+    const loadProfile = async () => {
+      // Vérifier la session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/auth/signin')
+        return
+      }
+
+      // Charger le profil
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profileData) {
+        setProfile(prev => ({
+          ...prev,
+          name: profileData.full_name || '',
+          picture: profileData.avatar_url
+        }))
+      }
+
+      // Charger les préférences
+      const { data: prefData } = await supabase
         .from('preferences')
         .select('widget_border_color')
         .single()
 
-      if (data?.widget_border_color) {
+      if (prefData?.widget_border_color) {
         setProfile(prev => ({
           ...prev,
-          widgetBorderColor: data.widget_border_color
+          widgetBorderColor: prefData.widget_border_color
         }))
       }
     }
 
-    loadBorderColor()
-  }, [mounted])
+    loadProfile()
+  }, [mounted, supabase, router])
 
   const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -95,21 +118,30 @@ export default function ProfilePage() {
   }
 
   const handleSave = async () => {
-    try {      
-      // Insert preferences if they don't exist, update if they do
-      const { error } = await supabase
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      // Mettre à jour le profil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.name,
+          avatar_url: profile.picture
+        })
+        .eq('id', session.user.id)
+
+      if (profileError) throw profileError
+
+      // Mettre à jour les préférences
+      const { error: prefError } = await supabase
         .from('preferences')
         .upsert({ 
           widget_border_color: profile.widgetBorderColor,
-          // Add a dummy id if it's a new record
-          id: (await supabase.from('preferences').select('id').single()).data?.id || '00000000-0000-0000-0000-000000000000'
+          id: session.user.id
         })
-        .select()
 
-      if (error) {
-        console.error('Database error:', error)
-        throw error
-      }
+      if (prefError) throw prefError
       
       setShowToast(true)
       setTimeout(() => {
