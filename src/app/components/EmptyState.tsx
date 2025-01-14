@@ -6,7 +6,8 @@ interface EmptyStateProps {
   description: string
   icon: LucideIcon
   actionLabel: string
-  actionHref: string
+  actionHref?: string
+  onAction?: () => void
   topActionLabel?: string
   topActionHref?: string
 }
@@ -17,6 +18,7 @@ export default function EmptyState({
   icon: Icon,
   actionLabel,
   actionHref,
+  onAction,
   topActionLabel,
   topActionHref,
 }: EmptyStateProps) {
@@ -41,13 +43,23 @@ export default function EmptyState({
         <p className="text-gray-600 mb-8 text-center max-w-md">
           {description}
         </p>
-        <Link
-          href={actionHref}
-          className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {actionLabel}
-        </Link>
+        {actionHref ? (
+          <Link
+            href={actionHref}
+            className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {actionLabel}
+          </Link>
+        ) : (
+          <button
+            onClick={onAction}
+            className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {actionLabel}
+          </button>
+        )}
       </div>
     </div>
   )

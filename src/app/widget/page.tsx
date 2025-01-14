@@ -1,6 +1,6 @@
 'use client'
 
-import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye } from 'lucide-react'
+import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, FolderIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import EmptyState from '../components/EmptyState'
@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { Story } from '../components/StoriesList'
 import React from 'react'
 import Loader from '@/app/components/Loader'
+import FolderView from '../components/FolderView'
 
 interface Widget {
   id: string
@@ -275,6 +276,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 }
 
 export default function WidgetsPage() {
+  const [showFolders, setShowFolders] = useState(false)
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [search, setSearch] = useState('')
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
@@ -332,6 +334,67 @@ export default function WidgetsPage() {
     return <Loader />
   }
 
+  if (showFolders) {
+    return (
+      <FolderView
+        type="widget"
+        onCreateFolder={(name) => {
+          // Pour l'instant, on ne fait rien avec le nom du dossier
+          // car on utilise le localStorage dans le composant FolderView
+        }}
+        onRenameFolder={(id, name) => {
+          // Pour l'instant, on ne fait rien avec le renommage
+        }}
+        onDeleteFolder={(id) => {
+          // Pour l'instant, on ne fait rien avec la suppression
+        }}
+        onBack={() => setShowFolders(false)}
+      />
+    )
+  }
+
+  if (widgets.length === 0) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Widgets</h1>
+              <p className="mt-2 text-gray-600">
+                Gérez vos widgets et créez de nouvelles expériences
+              </p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowFolders(true)}
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <FolderIcon className="w-4 h-4 mr-2" />
+                Dossiers
+              </button>
+
+              <Link
+                href="/widget/create"
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer un widget
+              </Link>
+            </div>
+          </div>
+          <EmptyState
+            icon={Layers}
+            title="Aucun widget"
+            description="Créez votre premier widget pour commencer à collecter et afficher des stories"
+            actionLabel="Créer un widget"
+            actionHref="/widget/create"
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white">
       <DeleteConfirmation 
@@ -351,53 +414,59 @@ export default function WidgetsPage() {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Widgets</h1>
             <p className="mt-2 text-gray-600">
-              Create and manage your story widgets
+              Gérez vos widgets et créez de nouvelles expériences
             </p>
           </div>
 
-          <Link
-            href="/widget/create"
-            className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create widget
-          </Link>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowFolders(true)}
+              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              <FolderIcon className="w-4 h-4 mr-2" />
+              Dossiers
+            </button>
+
+            <Link
+              href="/widget/create"
+              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Créer un widget
+            </Link>
+          </div>
         </div>
 
-        {widgets.length === 0 ? (
-          <EmptyState
-            icon={Layers}
-            title="No widgets yet"
-            description="Create your first widget to start collecting and displaying stories"
-            actionLabel="Create widget"
-            actionHref="/widget/create"
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher des widgets..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
           />
-        ) : (
-          <>
-            <div className="relative mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search widgets..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              />
-            </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredWidgets.map(widget => (
-                <WidgetCard
-                  key={widget.id}
-                  widget={widget}
-                  onDelete={handleDelete}
-                  onPreview={() => setPreviewWidget(widget)}
-                />
-              ))}
-            </div>
-          </>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredWidgets.map(widget => (
+            <WidgetCard
+              key={widget.id}
+              widget={widget}
+              onDelete={handleDelete}
+              onPreview={() => setPreviewWidget(widget)}
+            />
+          ))}
+        </div>
       </div>
+
+      {previewWidget && (
+        <BrowserPreview
+          isOpen={true}
+          onClose={() => setPreviewWidget(null)}
+          widget={previewWidget}
+        />
+      )}
     </div>
   )
 } 

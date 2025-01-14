@@ -1,3 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js"
+  "/story/page": "app/story/page.js",
+  "/widget/page": "app/widget/page.js",
+  "/story/create/page": "app/story/create/page.js",
+  "/widget/create/page": "app/widget/create/page.js"
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { Layers, Plus } from 'lucide-react'
+import { Layers, Plus, FolderIcon } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import StoriesList, { Story } from '../components/StoriesList'
 import Link from 'next/link'
@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Loader from '@/app/components/Loader'
 import { useState, useEffect } from 'react'
+import FolderView from '../components/FolderView'
 
 // Fetch function for stories
 const fetchStories = async () => {
@@ -25,6 +26,7 @@ const fetchStories = async () => {
 
 export default function StoriesPage() {
   const queryClient = useQueryClient()
+  const [showFolders, setShowFolders] = useState(false)
   const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -88,6 +90,25 @@ export default function StoriesPage() {
     return <Loader />
   }
 
+  if (showFolders) {
+    return (
+      <FolderView
+        type="story"
+        onCreateFolder={(name) => {
+          // Pour l'instant, on ne fait rien avec le nom du dossier
+          // car on utilise le localStorage dans le composant FolderView
+        }}
+        onRenameFolder={(id, name) => {
+          // Pour l'instant, on ne fait rien avec le renommage
+        }}
+        onDeleteFolder={(id) => {
+          // Pour l'instant, on ne fait rien avec la suppression
+        }}
+        onBack={() => setShowFolders(false)}
+      />
+    )
+  }
+
   if (stories.length === 0) {
     return (
       <div className="min-h-[calc(100vh-4rem)] bg-white">
@@ -96,23 +117,33 @@ export default function StoriesPage() {
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Stories</h1>
               <p className="mt-2 text-gray-600">
-                Manage your stories and create new experiences
+                Gérez vos stories et créez de nouvelles expériences
               </p>
             </div>
 
-            <Link
-              href="/story/create"
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create story
-            </Link>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowFolders(true)}
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <FolderIcon className="w-4 h-4 mr-2" />
+                Dossiers
+              </button>
+
+              <Link
+                href="/story/create"
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Créer une story
+              </Link>
+            </div>
           </div>
           <EmptyState
             icon={Layers}
-            title="No stories created"
-            description="Start by creating your first story to engage your customers with interactive content."
-            actionLabel="Create a story"
+            title="Aucune story créée"
+            description="Commencez par créer votre première story pour engager vos clients avec du contenu interactif."
+            actionLabel="Créer une story"
             actionHref="/story/create"
           />
         </div>
@@ -127,17 +158,27 @@ export default function StoriesPage() {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Stories</h1>
             <p className="mt-2 text-gray-600">
-              Manage your stories and create new experiences
+              Gérez vos stories et créez de nouvelles expériences
             </p>
           </div>
 
-          <Link
-            href="/story/create"
-            className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create story
-          </Link>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowFolders(true)}
+              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              <FolderIcon className="w-4 h-4 mr-2" />
+              Dossiers
+            </button>
+
+            <Link
+              href="/story/create"
+              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Créer une story
+            </Link>
+          </div>
         </div>
 
         <StoriesList stories={stories} onDelete={handleDelete} />
