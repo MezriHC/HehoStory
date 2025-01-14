@@ -2,6 +2,7 @@
 
 import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import EmptyState from '../components/EmptyState'
 import { WidgetFormat } from '../components/WidgetFormatSelector'
@@ -12,12 +13,14 @@ import { supabase } from '@/lib/supabase'
 import { Story } from '../components/StoriesList'
 import React from 'react'
 import Loader from '@/app/components/Loader'
+import { useAuth } from '@/hooks/useAuth'
 
-interface Widget {
+export interface Widget {
   id: string
   name: string
   format: WidgetFormat
-  stories: string[]
+  story_ids: string[]
+  stories?: Story[]
   created_at: string
   settings?: any
   published: boolean
@@ -102,22 +105,25 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
   const [showCode, setShowCode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [storyData, setStoryData] = useState<Story[]>([])
+  const { supabase: authClient } = useAuth()
 
   useEffect(() => {
     async function loadStories() {
       try {
-        if (!widget.stories?.length) {
+        if (!widget.story_ids?.length) {
           setStoryData([])
           return
         }
 
-        const validStoryIds = widget.stories.filter(id => id && typeof id === 'string')
+        const validStoryIds = widget.story_ids.filter(id => id && typeof id === 'string')
         if (!validStoryIds.length) {
           setStoryData([])
           return
         }
 
-        const { data, error } = await supabase
+        console.log('Loading stories for widget:', widget.id, 'with IDs:', validStoryIds)
+
+        const { data, error } = await authClient
           .from('stories')
           .select('id, title, thumbnail, content, author_id, published, created_at')
           .in('id', validStoryIds)
@@ -139,6 +145,8 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
           return
         }
 
+        console.log('Loaded stories for widget:', widget.id, 'stories:', data)
+
         // Cast the data to Story[] type
         const stories = data as Story[]
         setStoryData(stories)
@@ -152,7 +160,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
     }
 
     loadStories()
-  }, [widget.id, widget.stories])
+  }, [widget.id, widget.story_ids, authClient])
 
   const formatLabel = {
     bubble: 'Bubble Stories',
@@ -237,7 +245,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
             {formatLabel[widget.format]}
           </span>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {widget.stories.length} {widget.stories.length === 1 ? 'story' : 'stories'}
+            {widget.story_ids.length} {widget.story_ids.length === 1 ? 'story' : 'stories'}
           </span>
         </div>
 
@@ -275,31 +283,53 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 }
 
 export default function WidgetsPage() {
+  const { userId, loading: authLoading, supabase: authClient } = useAuth()
+  const router = useRouter()
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [search, setSearch] = useState('')
-  const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
-  const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
+  const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
+  const [allStories, setAllStories] = useState<Story[]>([])
 
   useEffect(() => {
-    async function loadWidgets() {
+    if (!authLoading && !userId) {
+      router.push('/auth/signin')
+    }
+  }, [authLoading, userId, router])
+
+  useEffect(() => {
+    async function loadData() {
       try {
-        const { data, error } = await supabase
+        // Charger les widgets
+        const { data: widgetsData, error: widgetsError } = await authClient
           .from('widgets')
           .select('*')
+          .eq('author_id', userId)
           .order('created_at', { ascending: false })
 
-        if (error) throw error
-        setWidgets(data || [])
+        if (widgetsError) throw widgetsError
+        setWidgets(widgetsData || [])
+
+        // Charger toutes les stories
+        const { data: storiesData, error: storiesError } = await authClient
+          .from('stories')
+          .select('*')
+          .eq('author_id', userId)
+
+        if (storiesError) throw storiesError
+        setAllStories(storiesData || [])
       } catch (error) {
-        console.error('Error loading widgets:', error)
+        console.error('Error loading data:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadWidgets()
-  }, [])
+    if (userId) {
+      loadData()
+    }
+  }, [userId, authClient])
 
   const handleDelete = async (id: string) => {
     setWidgetToDelete(id)
@@ -309,7 +339,7 @@ export default function WidgetsPage() {
     if (!widgetToDelete) return
 
     try {
-      const { error } = await supabase
+      const { error } = await authClient
         .from('widgets')
         .delete()
         .eq('id', widgetToDelete)
@@ -327,6 +357,15 @@ export default function WidgetsPage() {
   const filteredWidgets = widgets.filter(widget =>
     widget.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  const handlePreview = (widget: Widget) => {
+    // Trouver les stories correspondantes aux story_ids du widget
+    const widgetStories = allStories.filter(story => widget.story_ids.includes(story.id))
+    setPreviewWidget({
+      ...widget,
+      stories: widgetStories // Ajouter les stories complètes
+    })
+  }
 
   if (isLoading) {
     return <Loader />
@@ -378,6 +417,7 @@ export default function WidgetsPage() {
         isOpen={previewWidget !== null}
         onClose={() => setPreviewWidget(null)}
         widget={previewWidget!}
+        stories={previewWidget?.stories}
       />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -417,7 +457,7 @@ export default function WidgetsPage() {
               key={widget.id}
               widget={widget}
               onDelete={handleDelete}
-              onPreview={() => setPreviewWidget(widget)}
+              onPreview={() => handlePreview(widget)}
             />
           ))}
         </div>
@@ -428,6 +468,7 @@ export default function WidgetsPage() {
           isOpen={true}
           onClose={() => setPreviewWidget(null)}
           widget={previewWidget}
+          stories={previewWidget.stories}
         />
       )}
     </div>

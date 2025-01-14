@@ -154,9 +154,9 @@ export default function StoryPreview({ items, profileImage, profileName, onCompl
     setIsClosing(true)
     setTimeout(() => {
       setIsClosing(false)
-      // Add your close callback here if needed
+      onComplete?.()
     }, 500) // Match the animation duration
-  }, [])
+  }, [onComplete])
 
   if (!mounted || items.length === 0) {
     return (
@@ -177,130 +177,140 @@ export default function StoryPreview({ items, profileImage, profileName, onCompl
   if (!currentItem) return null
 
   return (
-    <div className={`relative w-full h-full bg-black aspect-[9/16] ${
-      isClosing ? 'animate-close-to-center-right' : ''
-    }`}>
-      {/* Progress bars */}
-      <div className="absolute top-0 left-0 right-0 p-2 flex gap-1 z-20 bg-gradient-to-b from-black/50 via-black/25 to-transparent">
-        {items.map((item, index) => (
-          <div
-            key={item.id}
-            className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
-          >
-            <div
-              className={`h-full bg-white rounded-full ${
-                index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
-              }`}
-              style={{
-                width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div 
+          className={`
+            relative aspect-[9/16] bg-black
+            w-full h-auto max-h-screen
+            md:h-[80vh] md:w-[45vh]
+            md:my-[10vh]
+            ${isClosing ? 'animate-close-to-center-right' : ''}
+          `}
+        >
+          {/* Progress bars */}
+          <div className="absolute top-0 left-0 right-0 p-2 flex gap-1 z-20 bg-gradient-to-b from-black/50 via-black/25 to-transparent">
+            {items.map((item, index) => (
+              <div
+                key={item.id}
+                className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
+              >
+                <div
+                  className={`h-full bg-white rounded-full ${
+                    index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
+                  }`}
+                  style={{
+                    width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Story header */}
+          <div className="absolute top-6 left-0 right-0 px-4 flex items-center justify-between z-20">
+            {/* Profile info */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-gray-300/50 backdrop-blur-sm overflow-hidden">
+                {profileImage ? (
+                  <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <div>
+                {profileName ? (
+                  <div className="text-sm font-medium text-white">
+                    {profileName}
+                  </div>
+                ) : (
+                  <div className="w-24 h-2.5 bg-gray-300/50 backdrop-blur-sm rounded-full" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Controls - Top right */}
+          <div className="absolute top-14 right-4 flex flex-col gap-2 z-20">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsPaused(!isPaused)
               }}
+              className="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsMuted(!isMuted)
+              }}
+              className="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+            </button>
+          </div>
+
+          {/* Click Navigation Areas */}
+          <div className="absolute inset-0 z-10 flex select-none">
+            <div 
+              className="w-1/2 h-full cursor-default" 
+              onClick={() => goToPrevStory()}
+            />
+            <div 
+              className="w-1/2 h-full cursor-default" 
+              onClick={() => goToNextStory()}
             />
           </div>
-        ))}
-      </div>
 
-      {/* Story header */}
-      <div className="absolute top-6 left-0 right-0 px-4 flex items-center justify-between z-20">
-        {/* Profile info */}
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-gray-300/50 backdrop-blur-sm overflow-hidden">
-            {profileImage ? (
-              <img src={profileImage} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-400" />
-              </div>
-            )}
+          {/* Navigation Arrows - Outside */}
+          <div className="absolute inset-y-0 -left-20 -right-20 pointer-events-none flex items-center justify-between">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                goToPrevStory()
+              }}
+              className="pointer-events-auto p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                goToNextStory()
+              }}
+              className="pointer-events-auto p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
           </div>
-          <div>
-            {profileName ? (
-              <div className="text-sm font-medium text-white">
-                {profileName}
-              </div>
+
+          {/* Media content */}
+          <div className="absolute inset-0 select-none">
+            {currentItem.type === 'video' ? (
+              <video
+                ref={videoRef}
+                src={currentItem.url}
+                className="h-full w-full object-cover"
+                playsInline
+                muted={isMuted}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleVideoEnded}
+                onLoadStart={() => setProgress(0)}
+              />
             ) : (
-              <div className="w-24 h-2.5 bg-gray-300/50 backdrop-blur-sm rounded-full" />
+              <img
+                src={currentItem.url}
+                alt=""
+                className="h-full w-full object-cover"
+                draggable={false}
+              />
             )}
           </div>
         </div>
-      </div>
-
-      {/* Controls - Top right */}
-      <div className="absolute top-14 right-4 flex flex-col gap-2 z-20">
-        <button 
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsPaused(!isPaused)
-          }}
-          className="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-        >
-          {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
-        </button>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation()
-            setIsMuted(!isMuted)
-          }}
-          className="p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-        >
-          {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-        </button>
-      </div>
-
-      {/* Click Navigation Areas */}
-      <div className="absolute inset-0 z-10 flex select-none">
-        <div 
-          className="w-1/2 h-full cursor-default" 
-          onClick={() => goToPrevStory()}
-        />
-        <div 
-          className="w-1/2 h-full cursor-default" 
-          onClick={() => goToNextStory()}
-        />
-      </div>
-
-      {/* Navigation Arrows - Outside */}
-      <div className="absolute inset-y-0 -left-20 -right-20 pointer-events-none flex items-center justify-between">
-        <button 
-          onClick={(e) => {
-            e.stopPropagation()
-            goToPrevStory()
-          }}
-          className="pointer-events-auto p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-        >
-          <ChevronLeft className="w-8 h-8" />
-        </button>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation()
-            goToNextStory()
-          }}
-          className="pointer-events-auto p-2 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-        >
-          <ChevronRight className="w-8 h-8" />
-        </button>
-      </div>
-
-      {/* Media content */}
-      <div className="absolute inset-0 select-none">
-        {currentItem.type === 'video' ? (
-          <video
-            ref={videoRef}
-            src={currentItem.url}
-            className="h-full w-full object-cover"
-            playsInline
-            muted={isMuted}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleVideoEnded}
-            onLoadStart={() => setProgress(0)}
-          />
-        ) : (
-          <img
-            src={currentItem.url}
-            alt=""
-            className="h-full w-full object-cover"
-            draggable={false}
-          />
-        )}
       </div>
     </div>
   )

@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import CreateWidgetPage from '../../create/page'
+import { useAuth } from '@/hooks/useAuth'
+import { Widget } from '@/app/widget/page'
 
 export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
-  const [widget, setWidget] = useState(null)
+  const [widget, setWidget] = useState<Widget | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { supabase: authClient } = useAuth()
 
   useEffect(() => {
     const loadWidget = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await authClient
           .from('widgets')
           .select('*')
           .eq('id', widgetId)
@@ -30,7 +32,7 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     }
 
     loadWidget()
-  }, [widgetId, router])
+  }, [widgetId, router, authClient])
 
   if (loading) {
     return (
@@ -44,5 +46,5 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     return null
   }
 
-  return <CreateWidgetPage searchParams={Promise.resolve({ widget: JSON.stringify(widget) })} />
+  return <CreateWidgetPage searchParams={{ widget: JSON.stringify(widget) }} />
 } 

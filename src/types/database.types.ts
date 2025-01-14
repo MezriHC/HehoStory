@@ -59,7 +59,7 @@ export interface Database {
           created_at: string
           updated_at: string
           name: string
-          user_id: string
+          author_id: string
           story_ids: string[]
           settings: Json
           status: 'active' | 'inactive'
@@ -69,7 +69,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           name: string
-          user_id: string
+          author_id: string
           story_ids: string[]
           settings: Json
           status?: 'active' | 'inactive'
@@ -79,7 +79,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           name?: string
-          user_id?: string
+          author_id?: string
           story_ids?: string[]
           settings?: Json
           status?: 'active' | 'inactive'
