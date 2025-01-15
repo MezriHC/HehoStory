@@ -1,5 +1,5 @@
 import { WidgetFormat } from './WidgetFormatSelector'
-import StoryThumbnail from './widgets/StoryThumbnail'
+import StoryStyle from '@/components/StoryStyle'
 
 interface ProductPageSkeletonProps {
   format: WidgetFormat
@@ -34,7 +34,7 @@ export default function ProductPageSkeleton({ format }: ProductPageSkeletonProps
         return (
           <div className="fixed bottom-6 right-6 flex gap-6 items-center">
             {[...Array(4)].map((_, i) => (
-              <StoryThumbnail key={i} variant="bubble" />
+              <StoryStyle key={i} variant="bubble" size="sm" />
             ))}
           </div>
         )
@@ -42,7 +42,7 @@ export default function ProductPageSkeleton({ format }: ProductPageSkeletonProps
         return (
           <div className="fixed bottom-6 right-6 flex gap-6 items-end">
             {[...Array(3)].map((_, i) => (
-              <StoryThumbnail key={i} variant="card" />
+              <StoryStyle key={i} variant="card" />
             ))}
           </div>
         )
@@ -50,7 +50,7 @@ export default function ProductPageSkeleton({ format }: ProductPageSkeletonProps
         return (
           <div className="fixed bottom-6 right-6 flex gap-6 items-center">
             {[...Array(3)].map((_, i) => (
-              <StoryThumbnail key={i} variant="square" />
+              <StoryStyle key={i} variant="square" />
             ))}
           </div>
         )
@@ -73,7 +73,7 @@ export default function ProductPageSkeleton({ format }: ProductPageSkeletonProps
       case 'sticky':
         return (
           <div className="fixed bottom-6 right-6">
-            <StoryThumbnail variant="bubble" size="sm" />
+            <StoryStyle variant="bubble" size="sm" />
           </div>
         )
     }

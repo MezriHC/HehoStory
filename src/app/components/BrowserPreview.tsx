@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
-import StoryPreview from './StoryPreview'
+import StoryStyle from '@/components/StoryStyle'
 import { ShoppingCart, Heart, Share2 } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
 import WidgetStyle from './widgets/WidgetStyle'
@@ -19,12 +19,17 @@ interface BrowserPreviewProps {
   stories?: Story[]
 }
 
-function ProductSkeleton({ widget, stories }: { 
+function ProductSkeleton({ 
+  widget, 
+  stories,
+  selectedStory,
+  onStorySelect
+}: { 
   widget: { format: WidgetFormat; story_ids: string[] }
   stories?: Story[]
+  selectedStory: Story | null
+  onStorySelect: (story: Story | null) => void
 }) {
-  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
-
   const getWidgetPosition = () => {
     switch (widget.format) {
       case 'sticky':
@@ -101,7 +106,7 @@ function ProductSkeleton({ widget, stories }: {
                 <WidgetStyle 
                   format={widget.format}
                   stories={stories}
-                  onStoryClick={setSelectedStory}
+                  onStoryClick={onStorySelect}
                 />
               </div>
             )}
@@ -156,30 +161,19 @@ function ProductSkeleton({ widget, stories }: {
             <WidgetStyle 
               format={widget.format}
               stories={stories}
-              onStoryClick={setSelectedStory}
+              onStoryClick={onStorySelect}
               className={`${getWidgetPosition()} pointer-events-auto`}
             />
           </div>
         </div>
       )}
-
-      {/* Story Preview Modal */}
-      {selectedStory && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          <StoryPreview
-            items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
-            profileImage={selectedStory.profile_image}
-            profileName={selectedStory.profile_name}
-            onComplete={() => setSelectedStory(null)}
-          />
-        </div>
-      )}
     </div>
-    )
-  }
+  )
+}
 
 export default function BrowserPreview({ isOpen, onClose, widget, stories }: BrowserPreviewProps) {
   const [mounted, setMounted] = useState(false)
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -193,7 +187,13 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => {
+          if (selectedStory) {
+            setSelectedStory(null)
+          } else {
+            onClose()
+          }
+        }}
       />
       
       {/* Browser Window */}
@@ -227,8 +227,25 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
 
           {/* Page Content */}
           <div className="absolute inset-0 top-[49px] bg-white overflow-y-auto">
-            <ProductSkeleton widget={widget} stories={stories} />
+            <ProductSkeleton 
+              widget={widget} 
+              stories={stories}
+              selectedStory={selectedStory}
+              onStorySelect={setSelectedStory}
+            />
           </div>
+
+          {/* Story Preview Modal */}
+          {selectedStory && (
+            <StoryStyle
+              variant="preview"
+              items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+              profileImage={selectedStory.profile_image}
+              profileName={selectedStory.profile_name}
+              onComplete={() => setSelectedStory(null)}
+              className="!bg-black/60 !backdrop-blur-none !z-[70]"
+            />
+          )}
         </div>
       </div>
     </div>

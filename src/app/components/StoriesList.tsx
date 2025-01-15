@@ -3,7 +3,7 @@
 import { Eye, Pencil, Search, Trash2, X, MoreHorizontal, Heart, Send, Image as ImageIcon, Play, Globe2 } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
-import StoryPreview from './StoryPreview'
+import StoryStyle from '@/components/StoryStyle'
 
 export interface Story {
   id: string
@@ -26,7 +26,7 @@ interface StoriesListProps {
 export default function StoriesList({ stories, onDelete }: StoriesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
-  const [previewStory, setPreviewStory] = useState<Story | null>(null)
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [isClosing, setIsClosing] = useState(false)
 
   const filteredStories = stories.filter(story =>
@@ -55,7 +55,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
     if (isClosing) return
     setIsClosing(true)
     setTimeout(() => {
-      setPreviewStory(null)
+      setSelectedStory(null)
       setIsClosing(false)
     }, 300)
   }
@@ -179,7 +179,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
 
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                   <button
-                    onClick={() => setPreviewStory(story)}
+                    onClick={() => setSelectedStory(story)}
                     className="flex items-center justify-center w-full h-9 text-sm font-medium text-gray-700 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                   >
                     <Play className="w-4 h-4 mr-2" />
@@ -192,25 +192,15 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
         ))}
       </div>
 
-      {/* Preview Modal */}
-      {previewStory && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center"
-          onClick={handleClose}
-        >
-          <div 
-            className={`w-[525px] aspect-[9/16] bg-black rounded-2xl overflow-hidden ${
-              isClosing ? 'animate-close-to-center-right' : ''
-            }`}
-            onClick={e => e.stopPropagation()}
-          >
-            <StoryPreview 
-              items={getMediaItems(previewStory)}
-              profileImage={previewStory.profile_image}
-              profileName={previewStory.profile_name}
-            />
-          </div>
-        </div>
+      {/* Story Preview Modal */}
+      {selectedStory && (
+        <StoryStyle
+          variant="preview"
+          items={getMediaItems(selectedStory)}
+          profileImage={selectedStory.profile_image}
+          profileName={selectedStory.profile_name}
+          onComplete={() => setSelectedStory(null)}
+        />
       )}
     </div>
   )

@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { Story } from '../../components/StoriesList'
 import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetFormatSelector'
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DropResult } from '@hello-pangea/dnd'
-import StoryThumbnail from '../../components/widgets/StoryThumbnail'
+import StoryStyle from '@/components/StoryStyle'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 import BrowserPreview from '@/app/components/BrowserPreview'
@@ -117,11 +117,11 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
           style={provided.draggableProps.style}
           className="relative"
         >
-          <StoryThumbnail
+          <StoryStyle 
+            variant={getVariant()} 
+            size="md" 
             story={story}
-            variant={getVariant()}
-            size="md"
-            borderColor={borderColor}
+            className={borderColor ? `border-2 ${borderColor}` : ''}
           />
           <button
             onClick={(e) => {

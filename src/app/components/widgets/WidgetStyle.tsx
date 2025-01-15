@@ -1,6 +1,7 @@
 import { Story } from '../StoriesList'
 import { WidgetFormat } from '../WidgetFormatSelector'
-import StoryThumbnail from './StoryThumbnail'
+import StoryStyle from '@/components/StoryStyle'
+import { useState } from 'react'
 
 interface WidgetStyleProps {
   format: WidgetFormat
@@ -10,34 +11,32 @@ interface WidgetStyleProps {
 }
 
 export default function WidgetStyle({ format, stories, onStoryClick, className = '' }: WidgetStyleProps) {
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
+
   // Rendu des widgets qui affichent plusieurs stories (bubble, card, square)
   const renderMultipleStories = (variant: 'bubble' | 'card' | 'square') => {
     const count = variant === 'bubble' ? 3 : 2 // 3 stories pour bubble, 2 pour les autres
     
     return (
-      <div className={`flex gap-4 ${className}`}>
+      <div className={`flex gap-6 ${className}`}>
         {stories?.length ? (
           stories.map((story) => (
-            <div 
-              key={story.id} 
-              className="flex-shrink-0 cursor-pointer relative z-10" 
-              onClick={() => onStoryClick?.(story)}
-            >
-              <StoryThumbnail 
-                story={story}
-                variant={variant}
-                size="md"
-              />
-            </div>
+            <StoryStyle
+              key={story.id}
+              variant={variant}
+              story={story}
+              onClick={() => {
+                setSelectedStory(story)
+                onStoryClick?.(story)
+              }}
+            />
           ))
         ) : (
           [...Array(count)].map((_, i) => (
-            <div key={i} className="flex-shrink-0 relative z-10">
-              <StoryThumbnail 
-                variant={variant}
-                size="md"
-              />
-            </div>
+            <StoryStyle
+              key={i}
+              variant={variant}
+            />
           ))
         )}
       </div>
@@ -49,23 +48,18 @@ export default function WidgetStyle({ format, stories, onStoryClick, className =
     return (
       <div className={className}>
         {stories?.[0] ? (
-          <div 
-            className="cursor-pointer relative z-10" 
-            onClick={() => onStoryClick?.(stories[0])}
-          >
-            <StoryThumbnail 
-              story={stories[0]}
-              variant={variant}
-              size={variant === 'story' ? 'lg' : 'md'}
-            />
-          </div>
+          <StoryStyle
+            variant={variant}
+            story={stories[0]}
+            onClick={() => {
+              setSelectedStory(stories[0])
+              onStoryClick?.(stories[0])
+            }}
+          />
         ) : (
-          <div className="relative z-10">
-            <StoryThumbnail 
-              variant={variant}
-              size={variant === 'story' ? 'lg' : 'md'}
-            />
-          </div>
+          <StoryStyle
+            variant={variant}
+          />
         )}
       </div>
     )
@@ -78,24 +72,42 @@ export default function WidgetStyle({ format, stories, onStoryClick, className =
     </div>
   )
 
-  switch (format) {
-    // Widgets multi-stories
-    case 'bubble':
-    case 'card':
-    case 'square':
-      return (
-        <InlineContainer>
-          {renderMultipleStories(format)}
-        </InlineContainer>
-      )
-    
-    // Widgets single-story
-    case 'sticky':
-      return renderSingleStory('single-bubble')
-    case 'iframe':
-      return renderSingleStory('story')
-    
-    default:
-      return null
-  }
+  return (
+    <>
+      {/* Widget Content */}
+      {(() => {
+        switch (format) {
+          // Widgets multi-stories
+          case 'bubble':
+          case 'card':
+          case 'square':
+            return (
+              <InlineContainer>
+                {renderMultipleStories(format)}
+              </InlineContainer>
+            )
+          
+          // Widgets single-story
+          case 'sticky':
+            return renderSingleStory('single-bubble')
+          case 'iframe':
+            return renderSingleStory('story')
+          
+          default:
+            return null
+        }
+      })()}
+
+      {/* Story Preview */}
+      {selectedStory && (
+        <StoryStyle
+          variant="preview"
+          items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+          profileImage={selectedStory.profile_image}
+          profileName={selectedStory.profile_name}
+          onComplete={() => setSelectedStory(null)}
+        />
+      )}
+    </>
+  )
 } 

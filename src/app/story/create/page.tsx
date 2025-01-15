@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useEffect, Suspense } from 'react'
 import MediaGrid, { MediaItem } from '../../components/MediaGrid'
-import StoryPreview from '../../components/StoryPreview'
+import StoryStyle from '@/components/StoryStyle'
 import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Story } from '@/lib/supabase'
@@ -416,15 +416,23 @@ function StoryEditor() {
               </div>
 
               {/* Right side: iPhone mockup with story preview */}
-              <div className="w-[400px] flex-shrink-0">
+              <div className="w-[400px] flex-shrink-0 sticky top-8">
                 <div className="relative w-[400px] h-[711px] bg-gray-900 rounded-[2rem] shadow-xl p-3 border border-gray-800">
                   {/* Screen content */}
                   <div className="relative w-full h-full bg-gray-100 rounded-[1.75rem] overflow-hidden">
-                    <StoryPreview 
-                      items={mediaItems} 
-                      profileImage={profileImage}
-                      profileName={profileName}
-                    />
+                    {mediaItems.length > 0 ? (
+                      <StoryStyle
+                        variant="preview"
+                        items={mediaItems}
+                        profileImage={profileImage}
+                        profileName={profileName}
+                        isPhonePreview={true}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <p className="text-sm">Add media to preview your story</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
