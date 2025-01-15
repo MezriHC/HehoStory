@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-export type WidgetFormat = 'bubble' | 'card' | 'square' | 'iframe' | 'sticky'
+export type WidgetFormat = 'bubble' | 'card' | 'square'
 
 interface WidgetFormatSelectorProps {
   value: WidgetFormat | null
@@ -46,21 +46,6 @@ function FormatVisual({ type, isSelected }: { type: WidgetFormat; isSelected: bo
                   ${isSelected ? 'bg-gray-600' : 'bg-gray-200 group-hover:bg-gray-300'}`} 
               />
             ))}
-          </div>
-        )
-      case 'iframe':
-        return (
-          <div 
-            className={`absolute right-3 bottom-3 w-8 h-20 rounded transition-colors duration-200
-              ${isSelected ? 'bg-gray-600' : 'bg-gray-200 group-hover:bg-gray-300'}`}
-          />
-        )
-      case 'sticky':
-        return (
-          <div className="absolute bottom-3 right-3">
-            <div className={`w-6 h-6 rounded-full transition-colors duration-200
-              ${isSelected ? 'bg-gray-600' : 'bg-gray-200 group-hover:bg-gray-300'}`} 
-            />
           </div>
         )
       default:
@@ -158,17 +143,7 @@ const formats: { type: WidgetFormat; label: string; description: string }[] = [
     type: 'square', 
     label: 'Square Grid',
     description: 'Clean square tiles that fit any layout'
-  },
-  { 
-    type: 'iframe', 
-    label: 'Story Sidebar',
-    description: 'A full-height sidebar that displays your stories'
-  },
-  { 
-    type: 'sticky', 
-    label: 'Sticky Button',
-    description: 'A floating button that expands to show stories'
-  },
+  }
 ]
 
 export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSelectorProps) {

@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Upload, User } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useRef, useState, useEffect, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import MediaGrid, { MediaItem } from '../../components/MediaGrid'
 import StoryStyle from '@/components/StoryStyle'
 import { supabase } from '@/lib/supabase'
@@ -99,6 +100,8 @@ function StoryEditor() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
   const [localUrls, setLocalUrls] = useState<{ [key: string]: string }>({})
   const [isInitialized, setIsInitialized] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [mounted, setMounted] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const profileImageInputRef = useRef<HTMLInputElement>(null)
@@ -112,6 +115,11 @@ function StoryEditor() {
       router.push('/auth/signin')
     }
   }, [authLoading, userId, router])
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const handleSave = async () => {
     if (!userId) {
@@ -288,10 +296,34 @@ function StoryEditor() {
     )
   }
 
+  const modal = showPreview && mounted ? createPortal(
+    <div 
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={() => setShowPreview(false)}
+    >
+      <div 
+        className="relative w-full max-w-[450px]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="aspect-[9/16] w-full">
+          <StoryStyle
+            variant="preview"
+            items={mediaItems}
+            profileImage={profileImage}
+            profileName={profileName}
+            onComplete={() => setShowPreview(false)}
+            className="rounded-xl overflow-hidden absolute inset-0"
+          />
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
             <Link
               href="/story"
@@ -302,85 +334,95 @@ function StoryEditor() {
             </Link>
           </div>
           
-          <button
-            className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleSave}
-            disabled={!title.trim() || mediaItems.length === 0}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {editId ? 'Save changes' : 'Save story'}
-          </button>
+          <div className="flex items-center gap-4">
+            {mediaItems.length > 0 && (
+              <button
+                onClick={() => setShowPreview(true)}
+                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Preview Story
+              </button>
+            )}
+            <button
+              className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSave}
+              disabled={!title.trim() || mediaItems.length === 0}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {editId ? 'Save changes' : 'Save story'}
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
-          <div className="border-b border-gray-200 px-8 py-6">
-            <input
-              type="text"
-              placeholder="Enter story title..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-2xl font-semibold text-gray-900 bg-transparent border-0 outline-none focus:ring-0 p-0 placeholder:text-gray-400"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Upload and organize your media to create an engaging story for your e-commerce site.
-            </p>
-          </div>
-
-          {/* Profile Section */}
-          <div className="border-b border-gray-200 px-8 py-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Story Profile</h3>
-            <div className="flex items-start space-x-6">
-              <div className="relative group">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 text-gray-400" />
-                  )}
-                </div>
-                <button
-                  onClick={() => profileImageInputRef.current?.click()}
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
-                >
-                  <Upload className="w-5 h-5 text-white" />
-                </button>
-                <input
-                  ref={profileImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleProfileImageUpload}
-                />
-              </div>
-              <div className="flex-1">
+        <div className="flex gap-8">
+          {/* Left Column: Main Content */}
+          <div className="flex-1">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+              <div className="border-b border-gray-200 px-8 py-4">
                 <input
                   type="text"
-                  placeholder="Enter profile name or story purpose..."
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full text-sm text-gray-900 bg-transparent border border-gray-200 rounded-lg px-3 h-10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter story title..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full text-xl font-semibold text-gray-900 bg-transparent border-0 outline-none focus:ring-0 p-0 placeholder:text-gray-400"
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  This will appear at the top of your story. Use it to brand your story or describe its purpose.
+                <p className="text-sm text-gray-500 mt-1">
+                  Upload and organize your media to create an engaging story for your e-commerce site.
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div className="p-8">
-            <div className="flex gap-12">
-              {/* Left side: Media grid */}
-              <div className="flex-1">
+              {/* Profile Section */}
+              <div className="border-b border-gray-200 px-8 py-4">
+                <h3 className="text-base font-medium text-gray-900 mb-3">Story Profile</h3>
+                <div className="flex items-start space-x-6">
+                  <div className="relative group">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {profileImage ? (
+                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-7 h-7 text-gray-400" />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => profileImageInputRef.current?.click()}
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                    >
+                      <Upload className="w-5 h-5 text-white" />
+                    </button>
+                    <input
+                      ref={profileImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleProfileImageUpload}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Enter profile name or story purpose..."
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
+                      className="w-full text-sm text-gray-900 bg-transparent border border-gray-200 rounded-lg px-3 h-9 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This will appear at the top of your story.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
                 {mediaItems.length === 0 ? (
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center transition-all hover:border-gray-300">
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 text-center transition-all hover:border-gray-300">
                     <div className="max-w-sm mx-auto">
-                      <div className="p-6 rounded-full bg-white border border-gray-200 mb-6 shadow-sm mx-auto w-fit">
-                        <Upload className="w-8 h-8 text-gray-900" />
+                      <div className="p-4 rounded-full bg-white border border-gray-200 mb-4 shadow-sm mx-auto w-fit">
+                        <Upload className="w-6 h-6 text-gray-900" />
                       </div>
                       <p className="text-base font-medium text-gray-900 mb-2">
                         No media added yet
                       </p>
-                      <p className="text-sm text-gray-500 mb-6">
+                      <p className="text-sm text-gray-500 mb-4">
                         Start by adding images or videos to create your story slides
                       </p>
                       <input
@@ -397,7 +439,7 @@ function StoryEditor() {
                         }}
                       />
                       <button
-                        className="inline-flex items-center justify-center w-full h-11 px-6 text-sm font-medium text-white transition-colors bg-gray-900 rounded-lg hover:bg-gray-800"
+                        className="inline-flex items-center justify-center w-full h-10 px-6 text-sm font-medium text-white transition-colors bg-gray-900 rounded-lg hover:bg-gray-800"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload className="w-4 h-4 mr-2" />
@@ -414,32 +456,35 @@ function StoryEditor() {
                   />
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* Right side: iPhone mockup with story preview */}
-              <div className="w-[400px] flex-shrink-0 sticky top-8">
-                <div className="relative w-[400px] h-[711px] bg-gray-900 rounded-[2rem] shadow-xl p-3 border border-gray-800">
-                  {/* Screen content */}
-                  <div className="relative w-full h-full bg-gray-100 rounded-[1.75rem] overflow-hidden">
-                    {mediaItems.length > 0 ? (
-                      <StoryStyle
-                        variant="preview"
-                        items={mediaItems}
-                        profileImage={profileImage}
-                        profileName={profileName}
-                        isPhonePreview={true}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <p className="text-sm">Add media to preview your story</p>
-                      </div>
-                    )}
-                  </div>
+          {/* Right Column: Story Preview */}
+          <div className="w-[350px] flex-shrink-0">
+            <div className="sticky top-8">
+              <div className="relative w-full max-w-[350px] mx-auto">
+                <div className="aspect-[9/16] w-full">
+                  {mediaItems.length > 0 ? (
+                    <StoryStyle
+                      variant="preview"
+                      items={mediaItems}
+                      profileImage={profileImage}
+                      profileName={profileName}
+                      className="rounded-xl overflow-hidden absolute inset-0"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 rounded-xl">
+                      <p className="text-sm">Add media to preview your story</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {modal}
     </div>
   )
 }

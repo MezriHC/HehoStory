@@ -5,9 +5,8 @@ import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
 import StoryStyle from '@/components/StoryStyle'
-import { ShoppingCart, Heart, Share2 } from 'lucide-react'
+import { ShoppingCart, Heart, Share2, X } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
-import WidgetStyle from './widgets/WidgetStyle'
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -23,26 +22,16 @@ function ProductSkeleton({
   widget, 
   stories,
   selectedStory,
-  onStorySelect
+  onStorySelect,
+  onClose
 }: { 
   widget: { format: WidgetFormat; story_ids: string[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
+  onClose: () => void
 }) {
-  const getWidgetPosition = () => {
-    switch (widget.format) {
-      case 'sticky':
-        return 'absolute bottom-8 right-8 z-50'
-      case 'iframe':
-        return 'absolute right-8 bottom-8 z-50'
-      default:
-        return ''
-    }
-  }
-
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format)
-  const isFixedWidget = ['sticky', 'iframe'].includes(widget.format)
 
   return (
     <div className="relative h-full bg-white">
@@ -100,18 +89,33 @@ function ProductSkeleton({
               <div className="w-4/6 h-4 bg-gray-100 rounded" />
             </div>
 
-            {/* Widget Preview - Formats intégrés (bubble, card, square) */}
+            {/* Widget Preview */}
             {isInlineWidget && (
-              <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 mb-8">
-                <WidgetStyle 
-                  format={widget.format}
-                  stories={stories}
-                  onStoryClick={onStorySelect}
-                />
+              <div className="mb-8">
+                <div className="relative">
+                  <div className="overflow-x-auto scrollbar-hide px-4">
+                    <div className="py-2">
+                      <div className="flex gap-4">
+                        {widget.story_ids.map((storyId) => {
+                          const story = stories?.find(s => s.id === storyId)
+                          if (!story) return null
+                          return (
+                            <StoryStyle 
+                              key={story.id}
+                              variant={widget.format === 'bubble' ? 'bubble' : widget.format === 'card' ? 'card' : 'square'}
+                              story={story}
+                              onClick={() => onStorySelect(story)}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Add to Cart Button */}
+            {/* Add to Cart */}
             <div className="flex items-center gap-4 mb-8">
               <button className="flex-1 h-14 px-8 bg-gray-900 text-white rounded-xl flex items-center justify-center gap-3 text-lg font-medium hover:bg-gray-800 transition-colors">
                 <ShoppingCart className="w-6 h-6" />
@@ -153,20 +157,6 @@ function ProductSkeleton({
           </div>
         </div>
       </div>
-
-      {/* Formats fixes (sticky, iframe) */}
-      {isFixedWidget && (
-        <div className="absolute inset-0">
-          <div className="relative w-full h-full">
-            <WidgetStyle 
-              format={widget.format}
-              stories={stories}
-              onStoryClick={onStorySelect}
-              className={`${getWidgetPosition()} pointer-events-auto`}
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -180,20 +170,35 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
     return () => setMounted(false)
   }, [])
 
+  useEffect(() => {
+    // Reset selected story when modal is closed
+    if (!isOpen) {
+      setSelectedStory(null)
+    }
+  }, [isOpen])
+
   if (!mounted || !isOpen) return null
+
+  const handleStorySelect = (story: Story | null) => {
+    setSelectedStory(story)
+  }
+
+  const handleClose = () => {
+    if (selectedStory) {
+      setSelectedStory(null)
+    } else {
+      onClose()
+    }
+  }
 
   const modal = (
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={() => {
-          if (selectedStory) {
-            setSelectedStory(null)
-          } else {
-            onClose()
-          }
-        }}
+        className={`absolute inset-0 transition-colors duration-200 ${
+          selectedStory ? 'bg-black/80' : 'bg-black/70'
+        } backdrop-blur-sm`}
+        onClick={handleClose}
       />
       
       {/* Browser Window */}
@@ -225,26 +230,40 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
             </div>
           </div>
 
-          {/* Page Content */}
-          <div className="absolute inset-0 top-[49px] bg-white overflow-y-auto">
+          {/* Content */}
+          <div className="relative h-[calc(100%-3rem)] overflow-auto">
             <ProductSkeleton 
               widget={widget} 
               stories={stories}
               selectedStory={selectedStory}
-              onStorySelect={setSelectedStory}
+              onStorySelect={handleStorySelect}
+              onClose={onClose}
             />
           </div>
 
-          {/* Story Preview Modal */}
+          {/* Story Preview */}
           {selectedStory && (
-            <StoryStyle
-              variant="preview"
-              items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
-              profileImage={selectedStory.profile_image}
-              profileName={selectedStory.profile_name}
-              onComplete={() => setSelectedStory(null)}
-              className="!bg-black/60 !backdrop-blur-none !z-[70]"
-            />
+            <div 
+              className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center"
+              onClick={() => setSelectedStory(null)}
+            >
+              <div 
+                className="relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-full h-full flex items-center justify-center">
+                  <StoryStyle
+                    variant="preview"
+                    story={selectedStory}
+                    items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+                    profileImage={selectedStory.profile_image}
+                    profileName={selectedStory.profile_name}
+                    onComplete={() => setSelectedStory(null)}
+                    className="rounded-xl overflow-hidden"
+                  />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

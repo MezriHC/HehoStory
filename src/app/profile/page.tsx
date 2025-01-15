@@ -4,7 +4,7 @@ import { Camera, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Toast from '../components/Toast'
-import WidgetPreview from '../components/widgets/WidgetPreview'
+import BrowserPreview from '../components/BrowserPreview'
 import ColorPicker from '../components/widgets/ColorPicker'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useAuth } from '@/hooks/useAuth'
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                   </span>
                 </label>
                 <div className="bg-gray-50 rounded-xl p-6">
-                  <WidgetPreview borderColor={profile.widgetBorderColor} />
+                  <BrowserPreview borderColor={profile.widgetBorderColor} />
                 </div>
               </div>
             </div>

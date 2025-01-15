@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Save, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -39,7 +39,7 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
       </div>
 
       {/* Stories grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
         {filteredStories.map(story => (
           <button
             key={story.id}
@@ -85,25 +85,35 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
 }
 
 function DraggableStory({ story, index, format, onRemove, borderColor }: { story: Story; index: number; format: WidgetFormat; onRemove: (id: string) => void; borderColor: string }) {
-  const getRemoveButtonClasses = () => {
-    if (format === 'iframe') {
-      return 'absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70'
-    }
-    return 'absolute -top-1 -right-1 p-1 bg-black/50 rounded-full hover:bg-black/70'
+  const getVariant = () => {
+    return format
   }
 
-  const getVariant = () => {
+  const getEmptyPreview = () => {
     switch (format) {
       case 'bubble':
-        return 'bubble'
+        return (
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-gray-200" />
+          </div>
+        )
       case 'card':
-        return 'card'
-      case 'sticky':
-        return 'single-bubble'
-      case 'iframe':
-        return 'story'
+        return (
+          <div className="w-32 h-48 rounded-xl bg-gray-100 flex flex-col">
+            <div className="h-32 bg-gray-200 rounded-t-xl" />
+            <div className="p-2">
+              <div className="w-16 h-3 bg-gray-200 rounded mb-1" />
+              <div className="w-12 h-2 bg-gray-200 rounded" />
+            </div>
+          </div>
+        )
+      case 'square':
       default:
-        return 'square'
+        return (
+          <div className="w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="w-16 h-16 bg-gray-200 rounded" />
+          </div>
+        )
     }
   }
 
@@ -114,24 +124,36 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          style={provided.draggableProps.style}
-          className="relative"
+          style={{
+            ...provided.draggableProps.style,
+          }}
+          className="relative group"
         >
-          <StoryStyle 
-            variant={getVariant()} 
-            size="md" 
-            story={story}
-            className={borderColor ? `border-2 ${borderColor}` : ''}
-          />
+          {/* Delete button */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               onRemove(story.id)
             }}
-            className={getRemoveButtonClasses()}
+            className="absolute -top-3 -right-3 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:border-red-200 transition-colors group"
+            title="Remove story"
           >
-            <Trash2 className={format === 'iframe' ? 'w-4 h-4 text-white' : 'w-3 h-3 text-white'} />
+            <X className="w-3 h-3 text-gray-400 group-hover:text-red-500" />
           </button>
+
+          {/* Story content */}
+          <div className="cursor-grab active:cursor-grabbing">
+            {story ? (
+              <StoryStyle 
+                variant={getVariant()} 
+                size="md" 
+                story={story}
+                className={borderColor ? `border-2 ${borderColor}` : ''}
+              />
+            ) : (
+              getEmptyPreview()
+            )}
+          </div>
         </div>
       )}
     </Draggable>
@@ -205,12 +227,6 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
 
   const handleStorySelect = (id: string) => {
     setSelectedStories(prev => {
-      // Pour les formats sticky et iframe, on ne permet qu'une seule story
-      if (format === 'sticky' || format === 'iframe') {
-        return [id]
-      }
-      
-      // Pour les autres formats, comportement normal
       if (prev.includes(id)) {
         return prev.filter(storyId => storyId !== id)
       }
@@ -218,22 +234,32 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     })
   }
 
-  // Ajouter un message d'aide pour les formats single-story
+  // Message d'aide pour les formats
   const getFormatHelperText = () => {
-    if (format === 'sticky' || format === 'iframe') {
-      return "Ce format ne permet de sélectionner qu'une seule story"
-    }
     return "Sélectionnez une ou plusieurs stories pour votre widget"
   }
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return
+    console.log('DragEnd result:', result)
+    
+    if (!result.destination) {
+      console.log('No destination, drag cancelled')
+      return
+    }
 
-    const items = Array.from(selectedStories)
-    const [reorderedItem] = items.splice(result.source.index, 1)
-    items.splice(result.destination.index, 0, reorderedItem)
-
-    setSelectedStories(items)
+    const sourceIndex = result.source.index
+    const destinationIndex = result.destination.index
+    
+    console.log('Moving story from index', sourceIndex, 'to index', destinationIndex)
+    console.log('Current selectedStories:', selectedStories)
+    
+    const newOrder = Array.from(selectedStories)
+    const [movedStory] = newOrder.splice(sourceIndex, 1)
+    newOrder.splice(destinationIndex, 0, movedStory)
+    
+    console.log('New order:', newOrder)
+    
+    setSelectedStories(newOrder)
   }
 
   const handleSave = async () => {
@@ -243,6 +269,12 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     }
 
     try {
+      // Get the first story in the selected order
+      const firstStory = selectedStoriesData[0]
+      if (!firstStory) {
+        throw new Error('No stories selected')
+      }
+
       const widget = {
         name: name.trim(),
         format,
@@ -299,8 +331,13 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     : name.trim().length > 0
   const isLastStep = step === 3
 
-  // Get the selected stories data
-  const selectedStoriesData = stories.filter(story => selectedStories.includes(story.id))
+  // Get the selected stories data in the correct order
+  const selectedStoriesData = selectedStories
+    .map(id => stories.find(story => story.id === id))
+    .filter((story): story is Story => story !== undefined)
+
+  console.log('Rendered with selectedStories:', selectedStories)
+  console.log('selectedStoriesData:', selectedStoriesData)
 
   const previewWidget = format ? {
     format,
@@ -338,7 +375,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
           </div>
 
           <div className="flex items-center gap-4">
-            {format && (
+            {format && step > 1 && selectedStories.length > 0 && (
               <button
                 onClick={() => setShowPreview(!showPreview)}
                 className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -397,47 +434,54 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
                 {initialWidget ? 'Edit name & arrangement' : 'Name & arrange'}
               </h2>
-              <div className="mb-6">
-                <label htmlFor="widget-name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Widget name
-                </label>
-                <input
-                  type="text"
-                  id="widget-name"
-                  placeholder="Enter a name for your widget"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-11 px-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Arrange stories
-                </label>
-                <DragDropContext onDragEnd={handleDragEnd}>
-                  <Droppable droppableId="stories" direction="horizontal">
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="flex items-start gap-6 min-h-[80px] p-4 bg-gray-50 rounded-lg"
-                      >
-                        {selectedStoriesData.map((story, index) => (
-                          <DraggableStory
-                            key={story.id}
-                            story={story}
-                            format={format!}
-                            index={index}
-                            onRemove={(id) => handleStorySelect(id)}
-                            borderColor={widgetBorderColor}
-                          />
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    Widget name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="block w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+                    placeholder="Enter widget name"
+                  />
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-4">Arrange stories</h3>
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="stories" direction="horizontal">
+                      {(provided) => (
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="flex flex-wrap items-start gap-6 min-h-[80px] p-4 bg-gray-50 rounded-lg"
+                        >
+                          {selectedStories.map((storyId, index) => {
+                            const story = stories.find(s => s.id === storyId)
+                            if (!story) return null
+                            
+                            return (
+                              <DraggableStory
+                                key={story.id}
+                                story={story}
+                                index={index}
+                                format={format || 'bubble'}
+                                onRemove={(id) => {
+                                  setSelectedStories(prev => prev.filter(sid => sid !== id))
+                                }}
+                                borderColor={widgetBorderColor}
+                              />
+                            )
+                          })}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                </div>
               </div>
             </div>
           )}

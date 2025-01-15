@@ -1,9 +1,11 @@
 'use client'
 
 import { Eye, Pencil, Search, Trash2, X, MoreHorizontal, Heart, Send, Image as ImageIcon, Play, Globe2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StoryStyle from '@/components/StoryStyle'
+import DeleteConfirmation from './DeleteConfirmation'
 
 export interface Story {
   id: string
@@ -27,7 +29,12 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
-  const [isClosing, setIsClosing] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const filteredStories = stories.filter(story =>
     story.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -51,14 +58,29 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
     }
   }
 
-  const handleClose = () => {
-    if (isClosing) return
-    setIsClosing(true)
-    setTimeout(() => {
-      setSelectedStory(null)
-      setIsClosing(false)
-    }, 300)
-  }
+  const modal = selectedStory && mounted ? createPortal(
+    <div 
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={() => setSelectedStory(null)}
+    >
+      <div 
+        className="relative w-full max-w-[450px]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="aspect-[9/16] w-full">
+          <StoryStyle
+            variant="preview"
+            items={getMediaItems(selectedStory)}
+            profileImage={selectedStory.profile_image}
+            profileName={selectedStory.profile_name}
+            onComplete={() => setSelectedStory(null)}
+            className="rounded-xl overflow-hidden absolute inset-0"
+          />
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null
 
   return (
     <div>
@@ -78,41 +100,16 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredStories.map(story => (
           <div key={story.id} className="group relative">
-            {/* Delete confirmation */}
-            {showDeleteConfirm === story.id && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-xl">
-                  <div className="flex items-start space-x-4 mb-6">
-                    <div className="p-3 bg-red-100 rounded-2xl">
-                      <Trash2 className="w-6 h-6 text-red-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Delete Story</h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Are you sure you want to delete this story? This action cannot be undone.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end space-x-3">
-                    <button
-                      onClick={() => setShowDeleteConfirm(null)}
-                      className="px-4 h-10 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        onDelete(story.id)
-                        setShowDeleteConfirm(null)
-                      }}
-                      className="px-4 h-10 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors"
-                    >
-                      Delete Story
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <DeleteConfirmation 
+              isOpen={showDeleteConfirm === story.id}
+              onClose={() => setShowDeleteConfirm(null)}
+              onConfirm={() => {
+                onDelete(story.id)
+                setShowDeleteConfirm(null)
+              }}
+              title="Delete Story"
+              description="Are you sure you want to delete this story? This action cannot be undone."
+            />
 
             {/* Story card */}
             <div className="bg-white border border-gray-200/75 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
@@ -192,16 +189,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
         ))}
       </div>
 
-      {/* Story Preview Modal */}
-      {selectedStory && (
-        <StoryStyle
-          variant="preview"
-          items={getMediaItems(selectedStory)}
-          profileImage={selectedStory.profile_image}
-          profileName={selectedStory.profile_name}
-          onComplete={() => setSelectedStory(null)}
-        />
-      )}
+      {modal}
     </div>
   )
 } 

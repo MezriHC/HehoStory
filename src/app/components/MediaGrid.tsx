@@ -1,5 +1,5 @@
 import { File, GripHorizontal, Image, Plus, Trash2, Video } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import {
   DndContext,
@@ -16,6 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import DeleteConfirmation from './DeleteConfirmation'
 
 export interface MediaItem {
   id: string

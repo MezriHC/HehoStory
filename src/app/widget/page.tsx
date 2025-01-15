@@ -14,6 +14,7 @@ import { Story } from '../components/StoriesList'
 import React from 'react'
 import Loader from '@/app/components/Loader'
 import { useAuth } from '@/hooks/useAuth'
+import DeleteConfirmation from '../components/DeleteConfirmation'
 
 export interface Widget {
   id: string
@@ -47,57 +48,9 @@ function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
             <rect x="3" y="3" width="18" height="18" />
           </svg>
         )}
-        {format === 'iframe' && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18" />
-          </svg>
-        )}
-        {format === 'sticky' && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-        )}
       </div>
     </div>
   )
-}
-
-function DeleteConfirmation({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-red-100 rounded-full">
-            <Trash2 className="w-6 h-6 text-red-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">Delete Widget</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Are you sure you want to delete this widget? This action cannot be undone.
-            </p>
-          </div>
-        </div>
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="h-9 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="h-9 px-4 text-sm font-medium text-white bg-red-600 transition-colors hover:bg-red-700 rounded-lg"
-          >
-            Delete Widget
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete: (id: string) => void; onPreview: () => void }): React.ReactElement {
@@ -147,9 +100,12 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 
         console.log('Loaded stories for widget:', widget.id, 'stories:', data)
 
-        // Cast the data to Story[] type
-        const stories = data as Story[]
-        setStoryData(stories)
+        // Sort the stories to match the order in widget.story_ids
+        const orderedStories = validStoryIds
+          .map(id => data.find(story => story.id === id))
+          .filter((story): story is Story => story !== undefined)
+
+        setStoryData(orderedStories)
       } catch (error) {
         console.error('Unexpected error loading stories:', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -165,9 +121,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
   const formatLabel = {
     bubble: 'Bubble Stories',
     card: 'Card Stories',
-    square: 'Square Stories',
-    iframe: 'Story Widget',
-    sticky: 'Sticky Button'
+    square: 'Square Stories'
   }
 
   const handleDelete = () => {
@@ -187,18 +141,32 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
   }
 
   const renderPreview = () => {
-    const firstStory = storyData[0]
-
-    if (firstStory?.thumbnail) {
-      return (
-        <div className="absolute inset-0">
-          <img src={firstStory.thumbnail} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-        </div>
-      )
+    // Find the first story based on the order in widget.story_ids
+    const firstStoryId = widget.story_ids[0]
+    console.log('Widget preview:', {
+      widgetId: widget.id,
+      firstStoryId,
+      allStoryIds: widget.story_ids,
+      loadedStories: storyData,
+    })
+    
+    const firstStory = storyData.find(story => story.id === firstStoryId)
+    if (!firstStory) {
+      console.log('No story found for ID:', firstStoryId)
+      return <WidgetFormatIcon format={widget.format} />
     }
 
-    return <WidgetFormatIcon format={widget.format} />
+    if (!firstStory.thumbnail) {
+      console.log('Story has no thumbnail:', firstStory)
+      return <WidgetFormatIcon format={widget.format} />
+    }
+
+    return (
+      <div className="absolute inset-0">
+        <img src={firstStory.thumbnail} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+      </div>
+    )
   }
 
   return (
@@ -411,6 +379,8 @@ export default function WidgetsPage() {
         isOpen={widgetToDelete !== null}
         onClose={() => setWidgetToDelete(null)}
         onConfirm={confirmDelete}
+        title="Delete Widget"
+        description="Are you sure you want to delete this widget? This action cannot be undone."
       />
 
       <BrowserPreview 
