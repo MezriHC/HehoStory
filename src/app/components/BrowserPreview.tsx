@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { WidgetFormat } from './WidgetFormatSelector'
+import { WidgetFormat, WidgetSize } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
 import StoryStyle from '@/components/StoryStyle'
-import { ShoppingCart, Heart, Share2, X } from 'lucide-react'
+import { ShoppingCart, Heart, Share2, X, Store, Package } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
 
 interface BrowserPreviewProps {
@@ -14,8 +14,19 @@ interface BrowserPreviewProps {
   widget: {
     format: WidgetFormat
     story_ids: string[]
+    stories?: Story[]
   }
   stories?: Story[]
+}
+
+// Fonction de conversion des tailles
+function convertWidgetSizeToStorySize(widgetSize: WidgetSize): 'sm' | 'md' | 'lg' {
+  switch (widgetSize) {
+    case 'S': return 'sm'
+    case 'M': return 'md'
+    case 'L': return 'lg'
+    default: return 'md'
+  }
 }
 
 function ProductSkeleton({ 
@@ -25,13 +36,31 @@ function ProductSkeleton({
   onStorySelect,
   onClose
 }: { 
-  widget: { format: WidgetFormat; story_ids: string[] }
+  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
   onClose: () => void
 }) {
-  const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format)
+  const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
+  const displayStories = widget.stories || stories || []
+
+  console.log('ProductSkeleton rendering:', {
+    widget,
+    stories,
+    displayStories,
+    selectedStory,
+    hasWidgetStories: !!widget.stories,
+    hasStories: !!stories,
+    storiesLength: displayStories.length
+  })
+
+  if (!isInlineWidget || displayStories.length === 0) {
+    console.log('Not showing widget preview:', {
+      isInlineWidget,
+      storiesLength: displayStories.length
+    })
+  }
 
   return (
     <div className="relative h-full bg-white">
@@ -90,21 +119,21 @@ function ProductSkeleton({
             </div>
 
             {/* Widget Preview */}
-            {isInlineWidget && (
+            {isInlineWidget && displayStories.length > 0 && (
               <div className="mb-8">
                 <div className="relative">
                   <div className="overflow-x-auto scrollbar-hide px-4">
                     <div className="py-2">
                       <div className="flex gap-4">
-                        {widget.story_ids.map((storyId) => {
-                          const story = stories?.find(s => s.id === storyId)
-                          if (!story) return null
+                        {displayStories.map((story) => {
+                          console.log('Rendering story:', story)
                           return (
                             <StoryStyle 
                               key={story.id}
-                              variant={widget.format === 'bubble' ? 'bubble' : widget.format === 'card' ? 'card' : 'square'}
+                              variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
                               story={story}
                               onClick={() => onStorySelect(story)}
+                              size={convertWidgetSizeToStorySize(widget.format.size)}
                             />
                           )
                         })}
@@ -161,29 +190,231 @@ function ProductSkeleton({
   )
 }
 
+function HomeSkeleton({ 
+  widget, 
+  stories,
+  selectedStory,
+  onStorySelect,
+  onClose
+}: { 
+  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
+  stories?: Story[]
+  selectedStory: Story | null
+  onStorySelect: (story: Story | null) => void
+  onClose: () => void
+}) {
+  const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
+  const displayStories = widget.stories || stories || []
+
+  console.log('HomeSkeleton rendering:', {
+    widget,
+    stories,
+    displayStories,
+    selectedStory,
+    hasWidgetStories: !!widget.stories,
+    hasStories: !!stories,
+    storiesLength: displayStories.length
+  })
+
+  if (!isInlineWidget || displayStories.length === 0) {
+    console.log('Not showing widget preview:', {
+      isInlineWidget,
+      storiesLength: displayStories.length
+    })
+  }
+
+  // Convertir la taille du widget en taille de story
+  const getStorySize = () => {
+    switch (widget.format.size) {
+      case 'S': return 'sm'
+      case 'M': return 'md'
+      case 'L': return 'lg'
+      default: return 'md'
+    }
+  }
+
+  return (
+    <div className="relative h-full bg-white">
+      {/* Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="w-32 h-6 bg-gray-200 rounded" />
+            <div className="hidden md:flex items-center gap-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-16 h-4 bg-gray-100 rounded" />
+              ))}
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gray-100 rounded-full" />
+              <div className="w-10 h-10 bg-gray-100 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section - Plus compact */}
+      <div className="relative h-[40vh] bg-gray-50">
+        <div className="absolute inset-0">
+          <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 opacity-50" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.02),transparent)]" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
+          <div className="max-w-2xl">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="w-48 h-5 bg-gray-200 rounded" />
+                <div className="w-96 h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="space-y-3">
+                <div className="w-full max-w-md h-4 bg-gray-200 rounded" />
+                <div className="w-4/5 max-w-md h-4 bg-gray-200 rounded" />
+              </div>
+              <div className="pt-4 flex gap-4">
+                <div className="w-36 h-11 bg-gray-200 rounded-lg" />
+                <div className="w-36 h-11 bg-white border-2 border-gray-100 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Widget Preview Section */}
+      {isInlineWidget && displayStories.length > 0 && (
+        <div className="bg-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative">
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="py-2">
+                  <div className="flex gap-4">
+                    {displayStories.map((story) => {
+                      console.log('Rendering story:', story)
+                      return (
+                        <StoryStyle 
+                          key={story.id}
+                          variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
+                          story={story}
+                          onClick={() => onStorySelect(story)}
+                          size={convertWidgetSizeToStorySize(widget.format.size)}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Featured Products */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="space-y-10">
+          {/* Featured Section */}
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="w-48 h-6 bg-gray-400 rounded" />
+                <div className="w-96 h-4 bg-gray-200 rounded" />
+              </div>
+              <div className="w-28 h-10 bg-gray-100 rounded-lg" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="group">
+                  <div className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="w-3/4 h-4 bg-gray-400 rounded" />
+                    <div className="w-1/2 h-4 bg-gray-200 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div className="space-y-8">
+            <div className="space-y-1">
+              <div className="w-48 h-6 bg-gray-400 rounded" />
+              <div className="w-96 h-4 bg-gray-200 rounded" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="relative aspect-[16/9] bg-gray-100 rounded-xl overflow-hidden group">
+                  <div className="absolute inset-0">
+                    <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors" />
+                  </div>
+                  <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                    <div className="w-32 h-5 bg-white rounded" />
+                    <div className="w-24 h-8 bg-white/90 backdrop-blur rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function BrowserPreview({ isOpen, onClose, widget, stories }: BrowserPreviewProps) {
   const [mounted, setMounted] = useState(false)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
+  const [viewMode, setViewMode] = useState<'product' | 'home'>('product')
+
+  console.log('=== BROWSER PREVIEW RENDER ===')
+  console.log('Props reçues:', {
+    isOpen,
+    widget,
+    stories,
+    'widget.stories': widget.stories
+  })
+
+  // Utiliser les stories du widget si disponibles, sinon utiliser les stories passées en props
+  const displayStories = widget.stories || stories || []
+  console.log('Stories à afficher:', displayStories)
 
   useEffect(() => {
+    console.log('=== BROWSER PREVIEW MOUNT ===')
+    console.log('État initial:', {
+      isOpen,
+      widget,
+      stories,
+      displayStories,
+      hasWidgetStories: !!widget.stories,
+      hasStories: !!stories,
+      storiesLength: displayStories.length
+    })
     setMounted(true)
-    return () => setMounted(false)
-  }, [])
+    return () => {
+      console.log('=== BROWSER PREVIEW UNMOUNT ===')
+      setMounted(false)
+    }
+  }, [isOpen, widget, stories, displayStories])
 
   useEffect(() => {
-    // Reset selected story when modal is closed
-    if (!isOpen) {
-      setSelectedStory(null)
-    }
-  }, [isOpen])
+    console.log('=== BROWSER PREVIEW UPDATE ===')
+    console.log('Changement détecté dans:', {
+      isOpen,
+      'widget.stories': widget.stories,
+      stories,
+      displayStories
+    })
+  }, [isOpen, widget.stories, stories, displayStories])
 
   if (!mounted || !isOpen) return null
 
   const handleStorySelect = (story: Story | null) => {
+    console.log('Story sélectionnée:', story)
     setSelectedStory(story)
   }
 
   const handleClose = () => {
+    console.log('Fermeture du preview')
     if (selectedStory) {
       setSelectedStory(null)
     } else {
@@ -227,18 +458,53 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
                   <div className="w-3 h-3 rounded-full bg-gray-300" />
                 </div>
               </div>
+              {/* View Toggle */}
+              <div className="flex items-center gap-2 ml-4">
+                <button
+                  onClick={() => setViewMode('home')}
+                  className={`flex items-center justify-center h-7 px-3 rounded-lg text-sm transition-colors ${
+                    viewMode === 'home'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Store className="w-4 h-4 mr-2" />
+                  Accueil
+                </button>
+                <button
+                  onClick={() => setViewMode('product')}
+                  className={`flex items-center justify-center h-7 px-3 rounded-lg text-sm transition-colors ${
+                    viewMode === 'product'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Produit
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Content */}
           <div className="relative h-[calc(100%-3rem)] overflow-auto">
-            <ProductSkeleton 
-              widget={widget} 
-              stories={stories}
-              selectedStory={selectedStory}
-              onStorySelect={handleStorySelect}
-              onClose={onClose}
-            />
+            {viewMode === 'product' ? (
+              <ProductSkeleton 
+                widget={widget} 
+                stories={displayStories}
+                selectedStory={selectedStory}
+                onStorySelect={handleStorySelect}
+                onClose={onClose}
+              />
+            ) : (
+              <HomeSkeleton 
+                widget={widget} 
+                stories={displayStories}
+                selectedStory={selectedStory}
+                onStorySelect={handleStorySelect}
+                onClose={onClose}
+              />
+            )}
           </div>
 
           {/* Story Preview */}
@@ -256,8 +522,8 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
                     variant="preview"
                     story={selectedStory}
                     items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
-                    profileImage={selectedStory.profile_image}
-                    profileName={selectedStory.profile_name}
+                    profileImage={selectedStory.profile_image || undefined}
+                    profileName={selectedStory.profile_name || undefined}
                     onComplete={() => setSelectedStory(null)}
                     className="rounded-xl overflow-hidden"
                   />

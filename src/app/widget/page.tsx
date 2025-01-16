@@ -32,18 +32,18 @@ function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
   return (
     <div className="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center">
       <div className="w-6 h-6 text-white">
-        {format === 'bubble' && (
+        {format.type === 'bubble' && (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="4" />
           </svg>
         )}
-        {format === 'card' && (
+        {format.type === 'card' && (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2" />
           </svg>
         )}
-        {format === 'square' && (
+        {format.type === 'square' && (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" />
           </svg>
@@ -78,7 +78,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 
         const { data, error } = await authClient
           .from('stories')
-          .select('id, title, thumbnail, content, author_id, published, created_at')
+          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
           .in('id', validStoryIds)
 
         if (error) {
@@ -97,8 +97,6 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
           setStoryData([])
           return
         }
-
-        console.log('Loaded stories for widget:', widget.id, 'stories:', data)
 
         // Sort the stories to match the order in widget.story_ids
         const orderedStories = validStoryIds
@@ -180,7 +178,10 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
-        widget={widget}
+        widget={{
+          ...widget,
+          stories: storyData
+        }}
       />
 
       <div className="aspect-[16/9] relative bg-gray-100 overflow-hidden">
@@ -210,7 +211,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
         </div>
         <div className="flex items-center gap-3 mb-4">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {formatLabel[widget.format]}
+            {formatLabel[widget.format.type]}
           </span>
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
             {widget.story_ids.length} {widget.story_ids.length === 1 ? 'story' : 'stories'}
@@ -258,7 +259,7 @@ export default function WidgetsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
-  const [allStories, setAllStories] = useState<Story[]>([])
+  const [previewStories, setPreviewStories] = useState<Story[]>([])
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -268,6 +269,8 @@ export default function WidgetsPage() {
 
   useEffect(() => {
     async function loadData() {
+      if (!userId) return
+
       try {
         // Charger les widgets
         const { data: widgetsData, error: widgetsError } = await authClient
@@ -278,25 +281,14 @@ export default function WidgetsPage() {
 
         if (widgetsError) throw widgetsError
         setWidgets(widgetsData || [])
-
-        // Charger toutes les stories
-        const { data: storiesData, error: storiesError } = await authClient
-          .from('stories')
-          .select('*')
-          .eq('author_id', userId)
-
-        if (storiesError) throw storiesError
-        setAllStories(storiesData || [])
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error('Error loading widgets:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    if (userId) {
-      loadData()
-    }
+    loadData()
   }, [userId, authClient])
 
   const handleDelete = async (id: string) => {
@@ -326,13 +318,83 @@ export default function WidgetsPage() {
     widget.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handlePreview = (widget: Widget) => {
-    // Trouver les stories correspondantes aux story_ids du widget
-    const widgetStories = allStories.filter(story => widget.story_ids.includes(story.id))
-    setPreviewWidget({
-      ...widget,
-      stories: widgetStories // Ajouter les stories complètes
-    })
+  const handlePreview = async (widget: Widget) => {
+    console.log('=== DÉBUT HANDLE PREVIEW ===')
+    console.log('Widget reçu:', widget)
+    
+    try {
+      // Parser le format s'il est en string
+      const widgetWithParsedFormat = {
+        ...widget,
+        format: typeof widget.format === 'string' ? JSON.parse(widget.format) : widget.format
+      }
+      
+      if (!widgetWithParsedFormat.story_ids?.length) {
+        console.log('Aucun story_ids dans le widget')
+        setPreviewStories([])
+        setPreviewWidget(widgetWithParsedFormat)
+        return
+      }
+
+      const validStoryIds = widgetWithParsedFormat.story_ids.filter(id => id && typeof id === 'string')
+      console.log('Story IDs valides:', validStoryIds)
+      
+      if (!validStoryIds.length) {
+        console.log('Aucun story ID valide après filtrage')
+        setPreviewStories([])
+        setPreviewWidget(widgetWithParsedFormat)
+        return
+      }
+
+      // Charger les stories spécifiques pour ce widget
+      console.log('Chargement des stories depuis Supabase...')
+      const { data: storiesData, error: storiesError } = await authClient
+        .from('stories')
+        .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
+        .in('id', validStoryIds)
+
+      if (storiesError) {
+        console.error('Erreur lors du chargement des stories:', {
+          error: storiesError.message,
+          code: storiesError.code,
+          details: storiesError.details,
+          widgetId: widgetWithParsedFormat.id
+        })
+        throw storiesError
+      }
+
+      if (!storiesData) {
+        console.warn('Aucune story trouvée pour le widget:', widgetWithParsedFormat.id)
+        setPreviewStories([])
+        setPreviewWidget(widgetWithParsedFormat)
+        return
+      }
+
+      console.log('Stories chargées depuis Supabase:', storiesData)
+
+      // Trier les stories dans l'ordre des story_ids
+      const orderedStories = validStoryIds
+        .map(id => storiesData.find(story => story.id === id))
+        .filter((story): story is Story => story !== undefined)
+
+      console.log('Stories triées et filtrées:', orderedStories)
+
+      const widgetWithStories = {
+        ...widgetWithParsedFormat,
+        stories: orderedStories
+      }
+
+      console.log('Widget avec stories:', widgetWithStories)
+      console.log('Mise à jour du state...')
+
+      setPreviewStories(orderedStories)
+      setPreviewWidget(widgetWithStories)
+
+      console.log('=== FIN HANDLE PREVIEW ===')
+    } catch (error) {
+      console.error('Erreur lors du chargement des stories pour la prévisualisation:', error)
+      alert('Impossible de charger les stories pour la prévisualisation')
+    }
   }
 
   if (isLoading) {
@@ -383,12 +445,20 @@ export default function WidgetsPage() {
         description="Are you sure you want to delete this widget? This action cannot be undone."
       />
 
-      <BrowserPreview 
-        isOpen={previewWidget !== null}
-        onClose={() => setPreviewWidget(null)}
-        widget={previewWidget!}
-        stories={previewWidget?.stories}
-      />
+      {previewWidget && (
+        <BrowserPreview 
+          isOpen={true}
+          onClose={() => {
+            setPreviewWidget(null)
+            setPreviewStories([])
+          }}
+          widget={{
+            ...previewWidget,
+            stories: previewStories
+          }}
+          stories={previewStories}
+        />
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
@@ -432,15 +502,6 @@ export default function WidgetsPage() {
           ))}
         </div>
       </div>
-
-      {previewWidget && (
-        <BrowserPreview
-          isOpen={true}
-          onClose={() => setPreviewWidget(null)}
-          widget={previewWidget}
-          stories={previewWidget.stories}
-        />
-      )}
     </div>
   )
 } 

@@ -1,7 +1,8 @@
 {
-  "/story/create/page": "app/story/create/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/integration/page": "app/integration/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/widget/page": "app/widget/page.js",
+  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
+  "/widget/create/page": "app/widget/create/page.js",
   "/story/page": "app/story/page.js",
-  "/widget/page": "app/widget/page.js"
+  "/integration/page": "app/integration/page.js"
 }

@@ -86,32 +86,52 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
 
 function DraggableStory({ story, index, format, onRemove, borderColor }: { story: Story; index: number; format: WidgetFormat; onRemove: (id: string) => void; borderColor: string }) {
   const getVariant = () => {
-    return format
+    return format.type
   }
 
   const getEmptyPreview = () => {
-    switch (format) {
+    switch (format.type) {
       case 'bubble':
         return (
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-gray-200" />
+          <div className={`rounded-full bg-gray-100 flex items-center justify-center ${
+            format.size === 'S' ? 'w-[70px] h-[70px]' :
+            format.size === 'M' ? 'w-[90px] h-[90px]' :
+            'w-[120px] h-[120px]'
+          }`}>
+            <div className={`rounded-full bg-gray-200 ${
+              format.size === 'S' ? 'w-8 h-8' :
+              format.size === 'M' ? 'w-10 h-10' :
+              'w-14 h-14'
+            }`} />
           </div>
         )
       case 'card':
         return (
-          <div className="w-32 h-48 rounded-xl bg-gray-100 flex flex-col">
-            <div className="h-32 bg-gray-200 rounded-t-xl" />
-            <div className="p-2">
-              <div className="w-16 h-3 bg-gray-200 rounded mb-1" />
-              <div className="w-12 h-2 bg-gray-200 rounded" />
+          <div className={`aspect-[9/16] rounded-xl bg-gray-100 flex flex-col ${
+            format.size === 'S' ? 'w-[150px]' :
+            format.size === 'M' ? 'w-[225px]' :
+            'w-[300px]'
+          }`}>
+            <div className="h-2/3 bg-gray-200 rounded-t-xl" />
+            <div className="p-3">
+              <div className="w-2/3 h-2 bg-gray-200 rounded mb-2" />
+              <div className="w-1/2 h-2 bg-gray-200 rounded" />
             </div>
           </div>
         )
       case 'square':
       default:
         return (
-          <div className="w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center">
-            <div className="w-16 h-16 bg-gray-200 rounded" />
+          <div className={`aspect-square rounded-lg bg-gray-100 flex items-center justify-center ${
+            format.size === 'S' ? 'w-14' :
+            format.size === 'M' ? 'w-16' :
+            'w-24'
+          }`}>
+            <div className={`rounded bg-gray-200 ${
+              format.size === 'S' ? 'w-8 h-8' :
+              format.size === 'M' ? 'w-10 h-10' :
+              'w-14 h-14'
+            }`} />
           </div>
         )
     }
@@ -146,7 +166,7 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
             {story ? (
               <StoryStyle 
                 variant={getVariant()} 
-                size="md" 
+                size="md"
                 story={story}
                 className={borderColor ? `border-2 ${borderColor}` : ''}
               />
@@ -164,7 +184,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const { userId, loading: authLoading, supabase: authClient } = useAuth()
   const router = useRouter()
   const [name, setName] = useState(initialWidget?.name || '')
-  const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || null)
+  const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || { type: 'bubble', size: 'S' })
   const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.story_ids || [])
   const [step, setStep] = useState(1)
   const [stories, setStories] = useState<Story[]>([])
@@ -277,7 +297,10 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
 
       const widget = {
         name: name.trim(),
-        format,
+        format: {
+          type: format?.type || 'bubble',
+          size: format?.size || 'S'
+        },
         story_ids: selectedStories,
         settings: initialWidget?.settings || {},
         published: true,
@@ -468,7 +491,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
                                 key={story.id}
                                 story={story}
                                 index={index}
-                                format={format || 'bubble'}
+                                format={format || { type: 'bubble', size: 'S' }}
                                 onRemove={(id) => {
                                   setSelectedStories(prev => prev.filter(sid => sid !== id))
                                 }}

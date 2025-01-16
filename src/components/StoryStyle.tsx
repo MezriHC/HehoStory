@@ -56,22 +56,34 @@ export default function StoryStyle({
 
   // Styles communs pour les vignettes
   const thumbnailStyles = {
-    bubble: 'w-[90px] h-[90px] rounded-full border-[3px] border-black shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center',
-    card: 'w-[90px] aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
-    square: 'aspect-square w-16 rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
+    bubble: 'rounded-full border-[3px] border-black shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center',
+    card: 'aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
+    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
     preview: 'w-full h-full'
   }
 
   const sizeStyles = {
-    sm: 'scale-75',
-    md: '',
-    lg: 'scale-125'
+    sm: {
+      bubble: 'w-[70px] h-[70px]',
+      card: 'w-[150px]',
+      square: 'w-14'
+    },
+    md: {
+      bubble: 'w-[90px] h-[90px]',
+      card: 'w-[225px]',
+      square: 'w-16'
+    },
+    lg: {
+      bubble: 'w-[120px] h-[120px]',
+      card: 'w-[300px]',
+      square: 'w-24'
+    }
   }
 
   // Rendu des vignettes
   if (variant !== 'preview') {
     const mediaUrl = story?.content ? JSON.parse(story.content).mediaItems[0]?.url : null
-    const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size]} ${className} relative cursor-pointer group flex-shrink-0`
+    const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size][variant]} ${className} relative cursor-pointer group flex-shrink-0`
 
     return (
       <div 
@@ -79,7 +91,7 @@ export default function StoryStyle({
         onClick={onClick}
       >
         {variant === 'bubble' ? (
-          <div className="w-[80px] h-[80px] rounded-full overflow-hidden relative">
+          <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
             {mediaUrl ? (
               <>
                 <img 
@@ -89,13 +101,13 @@ export default function StoryStyle({
                 />
                 <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200">
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Play className="w-5 h-5 text-white" />
+                    <Play className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
                   </div>
                 </div>
               </>
             ) : (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className="w-6 h-6 text-gray-400" />
+                <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
               </div>
             )}
           </div>
@@ -110,13 +122,13 @@ export default function StoryStyle({
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200">
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Play className="w-5 h-5 text-white" />
+                    <Play className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
                   </div>
                 </div>
               </>
             ) : (
               <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className="w-6 h-6 text-gray-400" />
+                <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
               </div>
             )}
           </div>

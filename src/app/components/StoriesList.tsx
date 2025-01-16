@@ -10,14 +10,13 @@ import DeleteConfirmation from './DeleteConfirmation'
 export interface Story {
   id: string
   title: string
-  created_at: string
-  content: string
+  thumbnail: string | null
+  content: string | null
   author_id: string
   published: boolean
-  thumbnail: string
-  tags?: string[]
-  profile_image?: string
-  profile_name?: string
+  created_at: string
+  profile_image: string | null
+  profile_name: string | null
 }
 
 interface StoriesListProps {

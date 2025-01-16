@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat } from './WidgetFormatSelector'
+import { Story } from './StoriesList'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -11,7 +12,8 @@ interface SettingsModalProps {
   widget: {
     id: string
     format: WidgetFormat
-    stories: string[]
+    story_ids: string[]
+    stories?: Story[]
   }
 }
 
