@@ -22,6 +22,10 @@ interface StoryStyleProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   isPhonePreview?: boolean
+  onNextStory?: () => void
+  onPrevStory?: () => void
+  isFirstStory?: boolean
+  isLastStory?: boolean
 }
 
 interface StoryCarouselProps {
@@ -45,7 +49,11 @@ export default function StoryStyle({
   onClick,
   size = 'md',
   className = '',
-  isPhonePreview = false
+  isPhonePreview = false,
+  onNextStory,
+  onPrevStory,
+  isFirstStory = false,
+  isLastStory = false
 }: StoryStyleProps) {
   const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -159,27 +167,59 @@ export default function StoryStyle({
     }
   }, [])
 
+  // Logique de navigation simplifiée
   const goToNextStory = useCallback(() => {
+    if (isLastStory) {
+      onComplete?.()
+    } else {
+      onNextStory?.()
+      setCurrentIndex(0)
+      resetProgress()
+    }
+  }, [isLastStory, onNextStory, onComplete, resetProgress])
+
+  const goToPrevFrame = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1)
+      resetProgress()
+    } else if (currentIndex === 0 && !isFirstStory) {
+      onPrevStory?.()
+      setCurrentIndex((items?.length || 1) - 1)
+      resetProgress()
+    }
+  }, [currentIndex, isFirstStory, items?.length, onPrevStory, resetProgress])
+
+  const goToPrevStory = useCallback(() => {
+    if (isFirstStory) {
+      onComplete?.()
+    } else {
+      onPrevStory?.()
+      setCurrentIndex((items?.length || 1) - 1)
+      resetProgress()
+    }
+  }, [isFirstStory, items?.length, onPrevStory, onComplete, resetProgress])
+
+  const goToNextFrame = useCallback(() => {
     if (!isLastItem) {
       setCurrentIndex(prev => prev + 1)
       resetProgress()
     } else {
-      onComplete?.()
-    }
-  }, [isLastItem, resetProgress, onComplete])
-
-  const goToPrevStory = useCallback(() => {
-    if (currentIndex > 0) {
-      setProgress(0)
-      setCurrentIndex(prev => prev - 1)
-      startTimeRef.current = Date.now()
-      elapsedBeforePauseRef.current = 0
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current)
-        progressTimerRef.current = null
+      // Si on est sur la dernière frame, on passe à la story suivante
+      if (isLastStory) {
+        onComplete?.()
+      } else {
+        onNextStory?.()
+        setCurrentIndex(0)
+        resetProgress()
       }
     }
-  }, [currentIndex])
+  }, [isLastItem, isLastStory, onNextStory, onComplete, resetProgress])
+
+  // Effet pour réinitialiser l'état lors du changement de story
+  useEffect(() => {
+    setCurrentIndex(0)
+    resetProgress()
+  }, [story?.id, resetProgress]) // On ajoute story?.id comme dépendance
 
   useEffect(() => {
     if (!currentItem) return
@@ -229,118 +269,199 @@ export default function StoryStyle({
   if (!mounted || !currentItem) return null
 
   return (
-    <div 
-      className={`relative w-full max-w-[450px] mx-auto ${className}`}
-      onClick={e => e.stopPropagation()}
-    >
-      <div className="relative aspect-[9/16] bg-black w-full rounded-2xl overflow-hidden">
-        {/* Progress bars */}
-        <div className="absolute top-0.5 left-0 right-0 p-2 flex gap-1 z-20">
-          {items?.map((item, index) => (
-            <div
-              key={item.id}
-              className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
-            >
+    <div className="relative w-full max-w-[800px] mx-auto flex items-center justify-center">
+      {/* Left Navigation */}
+      <div className="absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
+        {/* Story navigation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            goToPrevStory()
+          }}
+          disabled={isFirstStory}
+          className={`text-white transition-all ${
+            isFirstStory
+              ? 'opacity-30 cursor-not-allowed' 
+              : 'hover:text-white/90'
+          }`}
+          title="Previous story"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5L5 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="6" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        {/* Frame navigation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            goToPrevFrame()
+          }}
+          disabled={currentIndex === 0 && isFirstStory}
+          className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
+            currentIndex === 0 && isFirstStory
+              ? 'opacity-30 cursor-not-allowed' 
+              : 'hover:bg-white/90'
+          }`}
+          title="Previous frame"
+        >
+          <ChevronLeft className="w-8 h-8 stroke-[2]" />
+        </button>
+      </div>
+
+      {/* Story Container */}
+      <div 
+        className={`relative w-full max-w-[450px] mx-auto ${className}`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="relative aspect-[9/16] bg-black w-full rounded-2xl overflow-hidden">
+          {/* Progress bars */}
+          <div className="absolute top-0.5 left-0 right-0 p-2 flex gap-1 z-20">
+            {items?.map((item, index) => (
               <div
-                className={`h-full bg-white rounded-full ${
-                  index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
-                }`}
-                style={{
-                  width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
+                key={item.id}
+                className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
+              >
+                <div
+                  className={`h-full bg-white rounded-full ${
+                    index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
+                  }`}
+                  style={{
+                    width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Story content */}
+          <div className="absolute inset-0 bg-black">
+            {currentItem?.type === 'video' ? (
+              <video
+                ref={videoRef}
+                src={currentItem.url}
+                className="w-full h-full object-contain"
+                playsInline
+                muted={isMuted}
+                onTimeUpdate={() => {
+                  if (videoRef.current) {
+                    const progress = (videoRef.current.currentTime / videoRef.current.duration) * PROGRESS_BAR_WIDTH
+                    setProgress(progress)
+                  }
                 }}
+                onEnded={goToNextStory}
               />
-            </div>
-          ))}
-        </div>
-
-        {/* Story content */}
-        <div className="absolute inset-0 bg-black">
-          {currentItem?.type === 'video' ? (
-            <video
-              ref={videoRef}
-              src={currentItem.url}
-              className="w-full h-full object-contain"
-              playsInline
-              muted={isMuted}
-              onTimeUpdate={() => {
-                if (videoRef.current) {
-                  const progress = (videoRef.current.currentTime / videoRef.current.duration) * PROGRESS_BAR_WIDTH
-                  setProgress(progress)
-                }
-              }}
-              onEnded={goToNextStory}
-            />
-          ) : (
-            <img
-              src={currentItem?.url}
-              alt=""
-              className="w-full h-full object-contain"
-            />
-          )}
-        </div>
-
-        {/* Story header */}
-        <div className="absolute top-6 left-4 flex items-center space-x-3 z-20">
-          <div className="w-8 h-8 rounded-full bg-gray-300/50 backdrop-blur-sm overflow-hidden">
-            {profileImage ? (
-              <img src={profileImage} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-400" />
+              <img
+                src={currentItem?.url}
+                alt=""
+                className="w-full h-full object-contain"
+              />
+            )}
+          </div>
+
+          {/* Story header */}
+          <div className="absolute top-6 left-4 flex items-center space-x-3 z-20">
+            <div className="w-8 h-8 rounded-full bg-gray-300/50 backdrop-blur-sm overflow-hidden">
+              {profileImage ? (
+                <img src={profileImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-400" />
+                </div>
+              )}
+            </div>
+            {profileName && (
+              <div className="text-sm font-medium text-white">
+                {profileName}
               </div>
             )}
           </div>
-          {profileName && (
-            <div className="text-sm font-medium text-white">
-              {profileName}
-            </div>
-          )}
-        </div>
 
-        {/* Controls */}
-        <div className="absolute inset-0 flex">
-          <div
-            className="flex-1"
-            onClick={goToPrevStory}
-          />
-          <div
-            className="flex-1"
-            onClick={goToNextStory}
-          />
-        </div>
+          {/* Controls */}
+          <div className="absolute inset-0 flex">
+            <div
+              className="flex-1"
+              onClick={goToPrevStory}
+            />
+            <div
+              className="flex-1"
+              onClick={goToNextStory}
+            />
+          </div>
 
-        {/* Controls - Top right */}
-        <div className="absolute top-6 right-4 flex flex-col gap-4 z-20">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              onComplete?.()
-            }}
-            className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Controls - Top right */}
+          <div className="absolute top-6 right-4 flex flex-col gap-4 z-20">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                onComplete?.()
+              }}
+              className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsPaused(!isPaused)
-            }}
-            className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-          >
-            {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
-          </button>
-          
-          <button 
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsMuted(!isMuted)
-            }}
-            className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
-          >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsPaused(!isPaused)
+              }}
+              className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+            </button>
+            
+            <button 
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsMuted(!isMuted)
+              }}
+              className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
+            >
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Right Navigation */}
+      <div className="absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
+        {/* Frame navigation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            goToNextFrame()
+          }}
+          disabled={isLastItem && isLastStory}
+          className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
+            isLastItem && isLastStory
+              ? 'opacity-30 cursor-not-allowed' 
+              : 'hover:bg-white/90'
+          }`}
+          title="Next frame"
+        >
+          <ChevronRight className="w-8 h-8 stroke-[2]" />
+        </button>
+        {/* Story navigation */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            goToNextStory()
+          }}
+          disabled={isLastStory}
+          className={`text-white transition-all ${
+            isLastStory
+              ? 'opacity-30 cursor-not-allowed' 
+              : 'hover:text-white/90'
+          }`}
+          title="Next story"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="5" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   )

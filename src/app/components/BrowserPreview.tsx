@@ -336,49 +336,22 @@ function HomeSkeleton({
 export default function BrowserPreview({ isOpen, onClose, widget, stories }: BrowserPreviewProps) {
   const [mounted, setMounted] = useState(false)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
-  const [viewMode, setViewMode] = useState<'product' | 'home'>('product')
-
-  console.log('=== BROWSER PREVIEW RENDER ===')
-  console.log('Props reçues:', {
-    isOpen,
-    widget,
-    stories,
-    'widget.stories': widget.stories
-  })
-
-  // Utiliser les stories du widget si disponibles, sinon utiliser les stories passées en props
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
+  const [viewMode, setViewMode] = useState<'home' | 'product'>('home')
   const displayStories = widget.stories || stories || []
-  console.log('Stories à afficher:', displayStories)
 
   useEffect(() => {
-    console.log('=== BROWSER PREVIEW MOUNT ===')
-    console.log('État initial:', {
-      isOpen,
-      widget,
-      stories,
-      displayStories,
-      hasWidgetStories: !!widget.stories,
-      hasStories: !!stories,
-      storiesLength: displayStories.length
-    })
     setMounted(true)
-    return () => {
-      console.log('=== BROWSER PREVIEW UNMOUNT ===')
-      setMounted(false)
-    }
-  }, [isOpen, widget, stories, displayStories])
+  }, [])
 
   useEffect(() => {
-    console.log('=== BROWSER PREVIEW UPDATE ===')
-    console.log('Changement détecté dans:', {
-      isOpen,
-      'widget.stories': widget.stories,
-      stories,
-      displayStories
-    })
-  }, [isOpen, widget.stories, stories, displayStories])
-
-  if (!mounted || !isOpen) return null
+    if (selectedStory) {
+      const index = displayStories.findIndex(s => s.id === selectedStory.id)
+      setSelectedStoryIndex(index)
+    } else {
+      setSelectedStoryIndex(-1)
+    }
+  }, [selectedStory, displayStories])
 
   const handleStorySelect = (story: Story | null) => {
     console.log('Story sélectionnée:', story)
@@ -393,6 +366,24 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
       onClose()
     }
   }
+
+  const handleNextStory = () => {
+    if (selectedStoryIndex < displayStories.length - 1) {
+      setSelectedStory(displayStories[selectedStoryIndex + 1])
+    } else {
+      setSelectedStory(null)
+    }
+  }
+
+  const handlePrevStory = () => {
+    if (selectedStoryIndex > 0) {
+      setSelectedStory(displayStories[selectedStoryIndex - 1])
+    } else {
+      setSelectedStory(null)
+    }
+  }
+
+  if (!mounted || !isOpen) return null
 
   const modal = (
     <div className="fixed inset-0 z-50">
@@ -496,7 +487,11 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
                     items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
                     profileImage={selectedStory.profile_image || undefined}
                     profileName={selectedStory.profile_name || undefined}
-                    onComplete={() => setSelectedStory(null)}
+                    onComplete={handleNextStory}
+                    onNextStory={handleNextStory}
+                    onPrevStory={handlePrevStory}
+                    isFirstStory={selectedStoryIndex === 0}
+                    isLastStory={selectedStoryIndex === displayStories.length - 1}
                     className="rounded-xl overflow-hidden"
                   />
                 </div>
