@@ -181,16 +181,20 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
 }
 
 export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget }) {
-  const { userId, loading: authLoading, supabase: authClient } = useAuth()
   const router = useRouter()
-  const [name, setName] = useState(initialWidget?.name || '')
-  const [format, setFormat] = useState<WidgetFormat | null>(initialWidget?.format || { type: 'bubble', size: 'S' })
-  const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.story_ids || [])
+  const { userId, loading: authLoading, supabase: authClient } = useAuth()
   const [step, setStep] = useState(1)
+  const [format, setFormat] = useState<WidgetFormat | null>(
+    initialWidget ? 
+    (typeof initialWidget.format === 'string' ? JSON.parse(initialWidget.format) : initialWidget.format) 
+    : null
+  )
+  const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.story_ids || [])
+  const [name, setName] = useState(initialWidget?.name || '')
   const [stories, setStories] = useState<Story[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [widgetBorderColor, setWidgetBorderColor] = useState('#000000')
   const [showPreview, setShowPreview] = useState(false)
+  const [widgetBorderColor, setWidgetBorderColor] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (initialWidget) {

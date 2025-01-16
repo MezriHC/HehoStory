@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat, WidgetSize } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
-import StoryStyle from '@/components/StoryStyle'
-import { ShoppingCart, Heart, Share2, X, Store, Package } from 'lucide-react'
+import StoryStyle, { StoryCarousel } from '@/components/StoryStyle'
+import { ShoppingCart, Heart, Share2, X, Store, Package, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
 
 interface BrowserPreviewProps {
@@ -121,26 +121,12 @@ function ProductSkeleton({
             {/* Widget Preview */}
             {isInlineWidget && displayStories.length > 0 && (
               <div className="mb-8">
-                <div className="relative">
-                  <div className="overflow-x-auto scrollbar-hide px-4">
-                    <div className="py-2">
-                      <div className="flex gap-4">
-                        {displayStories.map((story) => {
-                          console.log('Rendering story:', story)
-                          return (
-                            <StoryStyle 
-                              key={story.id}
-                              variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
-                              story={story}
-                              onClick={() => onStorySelect(story)}
-                              size={convertWidgetSizeToStorySize(widget.format.size)}
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <StoryCarousel
+                  stories={displayStories}
+                  variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
+                  size={convertWidgetSizeToStorySize(widget.format.size)}
+                  onStorySelect={onStorySelect}
+                />
               </div>
             )}
 
@@ -283,26 +269,12 @@ function HomeSkeleton({
       {isInlineWidget && displayStories.length > 0 && (
         <div className="bg-white py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="relative">
-              <div className="overflow-x-auto scrollbar-hide">
-                <div className="py-2">
-                  <div className="flex gap-4">
-                    {displayStories.map((story) => {
-                      console.log('Rendering story:', story)
-                      return (
-                        <StoryStyle 
-                          key={story.id}
-                          variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
-                          story={story}
-                          onClick={() => onStorySelect(story)}
-                          size={convertWidgetSizeToStorySize(widget.format.size)}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <StoryCarousel
+              stories={displayStories}
+              variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
+              size={convertWidgetSizeToStorySize(widget.format.size)}
+              onStorySelect={onStorySelect}
+            />
           </div>
         </div>
       )}

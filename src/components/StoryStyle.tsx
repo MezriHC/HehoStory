@@ -1,4 +1,4 @@
-import { User, Pause, Play, Volume2, VolumeX, X } from 'lucide-react'
+import { User, Pause, Play, Volume2, VolumeX, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Story } from '@/app/components/StoriesList'
 
@@ -22,6 +22,14 @@ interface StoryStyleProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   isPhonePreview?: boolean
+}
+
+interface StoryCarouselProps {
+  stories: Story[]
+  variant: 'bubble' | 'card' | 'square'
+  size: 'sm' | 'md' | 'lg'
+  onStorySelect: (story: Story) => void
+  className?: string
 }
 
 const STORY_DURATION = 5000 // 5 seconds for images
@@ -56,26 +64,26 @@ export default function StoryStyle({
 
   // Styles communs pour les vignettes
   const thumbnailStyles = {
-    bubble: 'rounded-full border-[3px] border-black shadow-lg hover:scale-105 transition-transform duration-200 flex items-center justify-center',
-    card: 'aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
-    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg hover:scale-105 transition-transform duration-200',
+    bubble: 'rounded-full border-[3px] border-black shadow-lg transition-transform duration-200 flex items-center justify-center',
+    card: 'aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200',
+    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200',
     preview: 'w-full h-full'
   }
 
   const sizeStyles = {
     sm: {
       bubble: 'w-[70px] h-[70px]',
-      card: 'w-[150px]',
+      card: 'w-[100px]',
       square: 'w-14'
     },
     md: {
       bubble: 'w-[90px] h-[90px]',
-      card: 'w-[225px]',
+      card: 'w-[140px]',
       square: 'w-16'
     },
     lg: {
       bubble: 'w-[120px] h-[120px]',
-      card: 'w-[300px]',
+      card: 'w-[180px]',
       square: 'w-24'
     }
   }
@@ -99,9 +107,9 @@ export default function StoryStyle({
                   alt="" 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Play className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
+                <div className="absolute inset-0 bg-black/10 rounded-full">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
                   </div>
                 </div>
               </>
@@ -120,9 +128,9 @@ export default function StoryStyle({
                   alt="" 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Play className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
+                <div className="absolute inset-0 bg-black/10">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
                   </div>
                 </div>
               </>
@@ -333,6 +341,98 @@ export default function StoryStyle({
             {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+export function StoryCarousel({ stories, variant, size, onStorySelect, className = '' }: StoryCarouselProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [showControls, setShowControls] = useState(false)
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(false)
+
+  const checkOverflow = useCallback(() => {
+    const container = containerRef.current
+    if (container) {
+      const hasOverflow = container.scrollWidth > container.clientWidth
+      setShowControls(hasOverflow)
+      setShowLeftArrow(container.scrollLeft > 0)
+      setShowRightArrow(container.scrollLeft < (container.scrollWidth - container.clientWidth))
+    }
+  }, [])
+
+  useEffect(() => {
+    checkOverflow()
+    window.addEventListener('resize', checkOverflow)
+    return () => window.removeEventListener('resize', checkOverflow)
+  }, [checkOverflow])
+
+  const scroll = (direction: 'left' | 'right') => {
+    const container = containerRef.current
+    if (container) {
+      const scrollAmount = direction === 'left' ? -200 : 200
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      {/* Conteneur avec les effets de fondu sur les bords */}
+      <div className="relative">
+        {/* Effet de fondu à gauche */}
+        <div 
+          className={`absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none transition-opacity duration-300 ${
+            showLeftArrow ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        
+        {/* Effet de fondu à droite */}
+        <div 
+          className={`absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none transition-opacity duration-300 ${
+            showRightArrow ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
+        {/* Conteneur de défilement */}
+        <div 
+          ref={containerRef}
+          className="overflow-x-scroll scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onScroll={checkOverflow}
+        >
+          <div className="flex gap-4 w-max py-2 px-2">
+            {stories.map((story) => (
+              <StoryStyle 
+                key={story.id}
+                variant={variant}
+                story={story}
+                onClick={() => onStorySelect(story)}
+                size={size}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Boutons de navigation avec transition douce */}
+        <button 
+          onClick={() => scroll('left')}
+          className={`absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center z-20 transition-all duration-300 ${
+            showLeftArrow ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 pointer-events-none'
+          }`}
+          aria-hidden={!showLeftArrow}
+        >
+          <ChevronLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        
+        <button 
+          onClick={() => scroll('right')}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center z-20 transition-all duration-300 ${
+            showRightArrow ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
+          }`}
+          aria-hidden={!showRightArrow}
+        >
+          <ChevronRight className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
     </div>
   )

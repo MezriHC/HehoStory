@@ -56,22 +56,22 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
       switch (size) {
         case 'S': return { 
           bubble: 'w-[14px] h-[14px]',  // 70px ÷ 5
-          card: 'w-[30px] h-[53.4px]',  // 150px ÷ 5, hauteur proportionnelle (16/9)
+          card: 'w-[20px] h-[35.6px]',  // 100px ÷ 5, hauteur proportionnelle (16/9)
           square: 'w-[11.2px] h-[11.2px]'  // 56px ÷ 5
         }
         case 'M': return { 
           bubble: 'w-[18px] h-[18px]',  // 90px ÷ 5
-          card: 'w-[37.5px] h-[66.7px]',  // 187.5px ÷ 5 (entre S et L)
+          card: 'w-[28px] h-[49.8px]',  // 140px ÷ 5, hauteur proportionnelle (16/9)
           square: 'w-[12.8px] h-[12.8px]'  // 64px ÷ 5
         }
         case 'L': return { 
           bubble: 'w-[24px] h-[24px]',  // 120px ÷ 5
-          card: 'w-[60px] h-[106.7px]',  // 300px ÷ 5
+          card: 'w-[36px] h-[64px]',  // 180px ÷ 5, hauteur proportionnelle (16/9)
           square: 'w-[19.2px] h-[19.2px]'  // 96px ÷ 5
         }
         default: return { 
           bubble: 'w-[14px] h-[14px]',
-          card: 'w-[30px] h-[53.4px]',
+          card: 'w-[20px] h-[35.6px]',
           square: 'w-[11.2px] h-[11.2px]'
         }
       }
@@ -245,51 +245,61 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
   return (
     <div>
       {/* Controls */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col gap-6 mb-6">
         {/* View Toggle */}
-        <div className="flex h-10 bg-gray-100 rounded-lg p-1 flex-1">
-          <button
-            onClick={() => setView('product')}
-            className={`
-              flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
-              ${view === 'product'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'}
-            `}
-          >
-            <Package className="w-4 h-4" />
-            Produit
-          </button>
-          <button
-            onClick={() => setView('home')}
-            className={`
-              flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
-              ${view === 'home'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'}
-            `}
-          >
-            <Store className="w-4 h-4" />
-            Accueil
-          </button>
-        </div>
-
-        {/* Size Selector */}
-        <div className="flex h-10 bg-gray-100 rounded-lg p-1">
-          {(['S', 'M', 'L'] as const).map((size) => (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Type d'écran
+          </label>
+          <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[300px]">
             <button
-              key={size}
-              onClick={() => onChange({ type: value?.type || 'bubble', size })}
+              onClick={() => setView('product')}
               className={`
-                w-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors
-                ${value?.size === size
+                flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
+                ${view === 'product'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'}
               `}
             >
-              {size}
+              <Package className="w-4 h-4" />
+              Produit
             </button>
-          ))}
+            <button
+              onClick={() => setView('home')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
+                ${view === 'home'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'}
+              `}
+            >
+              <Store className="w-4 h-4" />
+              Accueil
+            </button>
+          </div>
+        </div>
+
+        {/* Size Selector */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Taille du widget
+          </label>
+          <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
+            {(['S', 'M', 'L'] as const).map((size) => (
+              <button
+                key={size}
+                onClick={() => onChange({ type: value?.type || 'bubble', size })}
+                className={`
+                  w-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors
+                  ${value?.size === size
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'}
+                `}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -313,7 +323,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
 
             <div className="relative p-4">
               {/* Format preview */}
-              <div className="mb-4">
+              <div className="mb-4 max-w-[280px] mx-auto">
                 {view === 'product' 
                   ? <ProductPreview type={format.type} /> 
                   : <HomePreview type={format.type} />

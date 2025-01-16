@@ -22,7 +22,14 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
           .single()
 
         if (error) throw error
-        setWidget(data)
+        
+        // Parse le format si c'est une chaîne de caractères
+        const parsedWidget = {
+          ...data,
+          format: typeof data.format === 'string' ? JSON.parse(data.format) : data.format
+        }
+        
+        setWidget(parsedWidget)
       } catch (error) {
         console.error('Error loading widget:', error)
         router.push('/widget')
