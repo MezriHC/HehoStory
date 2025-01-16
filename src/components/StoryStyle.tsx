@@ -22,10 +22,12 @@ interface StoryStyleProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   isPhonePreview?: boolean
+  hideNavigation?: boolean
   onNextStory?: () => void
   onPrevStory?: () => void
   isFirstStory?: boolean
   isLastStory?: boolean
+  isModal?: boolean
 }
 
 interface StoryCarouselProps {
@@ -39,6 +41,72 @@ interface StoryCarouselProps {
 const STORY_DURATION = 5000 // 5 seconds for images
 const PROGRESS_BAR_WIDTH = 100 // percentage
 
+// Nouveau composant pour les thumbnails vidéo
+function VideoThumbnail({ url, className }: { url: string, className?: string }) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+
+    const handleLoadedMetadata = () => {
+      // On cherche une frame spécifique
+      video.currentTime = 0.1 // On va chercher la frame à 100ms pour éviter la frame noire
+    }
+
+    const handleSeeked = () => {
+      const context = canvas.getContext('2d')
+      if (!context) return
+
+      // Définir les dimensions du canvas pour correspondre à la vidéo
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      // Dessiner la frame actuelle sur le canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+      // Convertir le canvas en URL de données
+      const dataUrl = canvas.toDataURL('image/jpeg')
+      setThumbnail(dataUrl)
+
+      // Nettoyer
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      video.removeEventListener('seeked', handleSeeked)
+      video.src = ''
+    }
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    video.addEventListener('seeked', handleSeeked)
+    video.src = url
+    video.load()
+
+    return () => {
+      if (video) {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        video.removeEventListener('seeked', handleSeeked)
+        video.src = ''
+      }
+    }
+  }, [url])
+
+  return (
+    <>
+      <video ref={videoRef} className="hidden" preload="metadata" />
+      <canvas ref={canvasRef} className="hidden" />
+      {thumbnail ? (
+        <img src={thumbnail} alt="" className={className} />
+      ) : (
+        <div className={`${className} bg-gray-200 flex items-center justify-center`}>
+          <Play className="w-8 h-8 text-gray-400" />
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function StoryStyle({ 
   variant,
   story,
@@ -50,16 +118,18 @@ export default function StoryStyle({
   size = 'md',
   className = '',
   isPhonePreview = false,
+  hideNavigation = false,
   onNextStory,
   onPrevStory,
   isFirstStory = false,
-  isLastStory = false
+  isLastStory = false,
+  isModal = false
 }: StoryStyleProps) {
   const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
-  const [isMuted, setIsMuted] = useState(true)
+  const [isMuted, setIsMuted] = useState(false)
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const startTimeRef = useRef<number>(Date.now())
@@ -99,6 +169,7 @@ export default function StoryStyle({
   // Rendu des vignettes
   if (variant !== 'preview') {
     const mediaUrl = story?.content ? JSON.parse(story.content).mediaItems[0]?.url : null
+    const mediaType = story?.content ? JSON.parse(story.content).mediaItems[0]?.type : null
     const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size][variant]} ${className} relative cursor-pointer group flex-shrink-0`
 
     return (
@@ -110,11 +181,15 @@ export default function StoryStyle({
           <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
             {mediaUrl ? (
               <>
-                <img 
-                  src={mediaUrl} 
-                  alt="" 
-                  className="w-full h-full object-cover"
-                />
+                {mediaType === 'video' ? (
+                  <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <img 
+                    src={mediaUrl} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/10 rounded-full">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
@@ -131,11 +206,15 @@ export default function StoryStyle({
           <div className="w-full h-full rounded-[inherit] overflow-hidden">
             {mediaUrl ? (
               <>
-                <img 
-                  src={mediaUrl} 
-                  alt="" 
-                  className="w-full h-full object-cover"
-                />
+                {mediaType === 'video' ? (
+                  <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <img 
+                    src={mediaUrl} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/10">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
@@ -204,8 +283,11 @@ export default function StoryStyle({
     if (!isLastItem) {
       setCurrentIndex(prev => prev + 1)
       resetProgress()
+    } else if (isPhonePreview) {
+      // En mode preview, on quitte la story à la fin
+      onComplete?.()
     } else {
-      // Si on est sur la dernière frame, on ferme la story
+      // En mode normal, on passe à la story suivante
       if (isLastStory) {
         onComplete?.()
       } else {
@@ -214,7 +296,7 @@ export default function StoryStyle({
         resetProgress()
       }
     }
-  }, [isLastItem, isLastStory, onNextStory, onComplete, resetProgress])
+  }, [isLastItem, isPhonePreview, isLastStory, onNextStory, onComplete, resetProgress])
 
   // Effet pour réinitialiser l'état lors du changement de story
   useEffect(() => {
@@ -225,100 +307,117 @@ export default function StoryStyle({
   useEffect(() => {
     if (!currentItem) return
 
+    if (currentItem.type === 'video' && videoRef.current) {
+      videoRef.current.muted = isMuted
+      
+      if (isPaused) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play().catch(console.error)
+      }
+      return
+    }
+
+    // Gestion du timer pour les images
     if (isPaused) {
       if (progressTimerRef.current) {
         clearInterval(progressTimerRef.current)
         progressTimerRef.current = null
       }
-      if (currentItem.type === 'image') {
-        elapsedBeforePauseRef.current = Date.now() - startTimeRef.current
-      }
+      elapsedBeforePauseRef.current = Date.now() - startTimeRef.current
       return
     }
 
-    if (currentItem.type === 'video' && videoRef.current) {
-      videoRef.current.play().catch(console.error)
-    } else {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current)
-      }
-
-      if (elapsedBeforePauseRef.current > 0) {
-        startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
-      } else {
-        startTimeRef.current = Date.now()
-      }
-      
-      const timer = setInterval(() => {
-        const elapsed = Date.now() - startTimeRef.current
-        const newProgress = (elapsed / STORY_DURATION) * PROGRESS_BAR_WIDTH
-
-        if (newProgress >= PROGRESS_BAR_WIDTH) {
-          elapsedBeforePauseRef.current = 0
-          resetProgress()
-          // Si c'est la dernière frame de la dernière story, on ferme
-          if (isLastItem && isLastStory) {
-            onComplete?.()
-          } else {
-            goToNextFrame()
-          }
-        } else {
-          setProgress(newProgress)
-        }
-      }, 16)
-
-      progressTimerRef.current = timer
-      return () => clearInterval(timer)
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current)
     }
-  }, [currentIndex, currentItem, isPaused, goToNextFrame, resetProgress, isLastItem, isLastStory, onComplete])
+
+    if (elapsedBeforePauseRef.current > 0) {
+      startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
+    } else {
+      startTimeRef.current = Date.now()
+    }
+    
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current
+      const newProgress = (elapsed / STORY_DURATION) * PROGRESS_BAR_WIDTH
+
+      if (newProgress >= PROGRESS_BAR_WIDTH) {
+        elapsedBeforePauseRef.current = 0
+        resetProgress()
+        if (isPhonePreview && isLastItem) {
+          // En mode preview, on quitte la story à la fin
+          onComplete?.()
+        } else if (isLastItem && isLastStory) {
+          // En mode normal, on quitte si c'est la dernière frame de la dernière story
+          onComplete?.()
+        } else {
+          goToNextFrame()
+        }
+      } else {
+        setProgress(newProgress)
+      }
+    }, 16)
+
+    progressTimerRef.current = timer
+    return () => clearInterval(timer)
+  }, [currentIndex, currentItem, isPaused, isMuted, goToNextFrame, resetProgress, isLastItem, isLastStory, isPhonePreview, onComplete])
 
   if (!mounted || !currentItem) return null
 
   return (
     <div className="relative w-full max-w-[800px] mx-auto flex items-center justify-center">
       {/* Left Navigation */}
-      <div className={`absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
-        {/* Story navigation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            goToPrevStory()
-          }}
-          disabled={isFirstStory || isPhonePreview}
-          className={`text-white transition-all ${
-            isFirstStory || isPhonePreview
-              ? 'opacity-30 cursor-not-allowed' 
-              : 'hover:text-white/90'
-          }`}
-          title="Previous story"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 5L5 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="6" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </button>
-        {/* Frame navigation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            goToPrevFrame()
-          }}
-          disabled={currentIndex === 0 && isFirstStory || isPhonePreview}
-          className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-            currentIndex === 0 && isFirstStory || isPhonePreview
-              ? 'opacity-30 cursor-not-allowed' 
-              : 'hover:bg-white/90'
-          }`}
-          title="Previous frame"
-        >
-          <ChevronLeft className="w-8 h-8 stroke-[2]" />
-        </button>
-      </div>
+      {!hideNavigation && (
+        <div className={`absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
+          {/* Story navigation */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToPrevStory()
+            }}
+            disabled={isFirstStory || isPhonePreview}
+            className={`text-white transition-all ${
+              isFirstStory || isPhonePreview
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'hover:text-white/90'
+            }`}
+            title="Previous story"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5L5 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="6" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          {/* Frame navigation */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToPrevFrame()
+            }}
+            disabled={currentIndex === 0 && isFirstStory || isPhonePreview}
+            className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
+              currentIndex === 0 && isFirstStory || isPhonePreview
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'hover:bg-white/90'
+            }`}
+            title="Previous frame"
+          >
+            <ChevronLeft className="w-8 h-8 stroke-[2]" />
+          </button>
+        </div>
+      )}
 
       {/* Story Container */}
       <div 
-        className={`relative w-full max-w-[450px] mx-auto ${className}`}
-        onClick={e => e.stopPropagation()}
+        className={`relative w-full max-w-[450px] mx-auto rounded-xl overflow-hidden ${className}`}
+        style={isModal ? {
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 50
+        } : undefined}
       >
         <div className="relative aspect-[9/16] bg-black w-full rounded-2xl overflow-hidden">
           {/* Progress bars */}
@@ -350,6 +449,8 @@ export default function StoryStyle({
                 src={currentItem.url}
                 className="w-full h-full object-contain"
                 playsInline
+                autoPlay
+                preload="metadata"
                 muted={isMuted}
                 onTimeUpdate={() => {
                   if (videoRef.current) {
@@ -357,7 +458,11 @@ export default function StoryStyle({
                     setProgress(progress)
                   }
                 }}
-                onEnded={goToNextStory}
+                onLoadedMetadata={(e) => {
+                  const video = e.currentTarget
+                  video.currentTime = 0.1 // On va chercher la frame à 100ms pour éviter la frame noire
+                }}
+                onEnded={goToNextFrame}
               />
             ) : (
               <img
@@ -448,43 +553,45 @@ export default function StoryStyle({
       </div>
 
       {/* Right Navigation */}
-      <div className={`absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
-        {/* Frame navigation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            goToNextFrame()
-          }}
-          disabled={isLastItem && isLastStory || isPhonePreview}
-          className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-            isLastItem && isLastStory || isPhonePreview
-              ? 'opacity-30 cursor-not-allowed' 
-              : 'hover:bg-white/90'
-          }`}
-          title="Next frame"
-        >
-          <ChevronRight className="w-8 h-8 stroke-[2]" />
-        </button>
-        {/* Story navigation */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            goToNextStory()
-          }}
-          disabled={isLastStory || isPhonePreview}
-          className={`text-white transition-all ${
-            isLastStory || isPhonePreview
-              ? 'opacity-30 cursor-not-allowed' 
-              : 'hover:text-white/90'
-          }`}
-          title="Next story"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="18" y1="12" x2="5" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </button>
-      </div>
+      {!hideNavigation && (
+        <div className={`absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
+          {/* Frame navigation */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToNextFrame()
+            }}
+            disabled={isLastItem && isLastStory || isPhonePreview}
+            className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
+              isLastItem && isLastStory || isPhonePreview
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'hover:bg-white/90'
+            }`}
+            title="Next frame"
+          >
+            <ChevronRight className="w-8 h-8 stroke-[2]" />
+          </button>
+          {/* Story navigation */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              goToNextStory()
+            }}
+            disabled={isLastStory || isPhonePreview}
+            className={`text-white transition-all ${
+              isLastStory || isPhonePreview
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'hover:text-white/90'
+            }`}
+            title="Next story"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="18" y1="12" x2="5" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

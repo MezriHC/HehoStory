@@ -59,27 +59,49 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
 
   const modal = selectedStory && mounted ? createPortal(
     <div 
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
       onClick={() => setSelectedStory(null)}
     >
-      <div 
-        className="relative w-full max-w-[450px]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="aspect-[9/16] w-full">
-          <StoryStyle
-            variant="preview"
-            items={getMediaItems(selectedStory)}
-            profileImage={selectedStory.profile_image}
-            profileName={selectedStory.profile_name}
-            onComplete={() => setSelectedStory(null)}
-            className="rounded-xl overflow-hidden absolute inset-0"
-          />
-        </div>
-      </div>
+      <StoryStyle
+        variant="preview"
+        items={getMediaItems(selectedStory)}
+        profileImage={selectedStory.profile_image || undefined}
+        profileName={selectedStory.profile_name || undefined}
+        onComplete={() => setSelectedStory(null)}
+        className="rounded-xl overflow-hidden"
+        isPhonePreview={true}
+      />
     </div>,
     document.body
   ) : null
+
+  useEffect(() => {
+    if (selectedStory) {
+      // Bloquer le scroll
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.overflow = 'hidden'
+    } else {
+      // Restaurer le scroll
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
+    }
+
+    return () => {
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.overflow = ''
+    }
+  }, [selectedStory])
 
   return (
     <div>

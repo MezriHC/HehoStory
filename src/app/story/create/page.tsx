@@ -121,6 +121,33 @@ function StoryEditor() {
     return () => setMounted(false)
   }, [])
 
+  // Effet pour bloquer le scroll quand le preview est ouvert
+  useEffect(() => {
+    if (showPreview) {
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.overflow = 'hidden'
+    } else {
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
+    }
+
+    return () => {
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      document.body.style.overflow = ''
+    }
+  }, [showPreview])
+
   const handleSave = async () => {
     if (!userId) {
       console.error('No user ID available')
@@ -298,24 +325,20 @@ function StoryEditor() {
 
   const modal = showPreview && mounted ? createPortal(
     <div 
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
       onClick={() => setShowPreview(false)}
     >
-      <div 
-        className="relative w-full max-w-[450px]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="aspect-[9/16] w-full">
-          <StoryStyle
-            variant="preview"
-            items={mediaItems}
-            profileImage={profileImage}
-            profileName={profileName}
-            onComplete={() => setShowPreview(false)}
-            className="rounded-xl overflow-hidden absolute inset-0"
-          />
-        </div>
-      </div>
+      <StoryStyle
+        variant="preview"
+        items={mediaItems}
+        profileImage={profileImage}
+        profileName={profileName}
+        onComplete={() => setShowPreview(false)}
+        className="rounded-xl overflow-hidden"
+        isPhonePreview={true}
+        hideNavigation={true}
+        isModal={true}
+      />
     </div>,
     document.body
   ) : null
@@ -354,9 +377,8 @@ function StoryEditor() {
           </div>
         </div>
 
-        <div className="flex gap-8">
-          {/* Left Column: Main Content */}
-          <div className="flex-1">
+        <div className="grid grid-cols-[1fr,350px] gap-8">
+          <div className="space-y-8">
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
               <div className="border-b border-gray-200 px-8 py-4">
                 <input
@@ -459,10 +481,9 @@ function StoryEditor() {
             </div>
           </div>
 
-          {/* Right Column: Story Preview */}
-          <div className="w-[350px] flex-shrink-0">
+          <div className="space-y-8">
             <div className="sticky top-8">
-              <div className="relative w-full max-w-[350px] mx-auto">
+              <div className="bg-white rounded-xl shadow-sm">
                 <div className="aspect-[9/16] w-full">
                   {mediaItems.length > 0 ? (
                     <StoryStyle
@@ -470,8 +491,9 @@ function StoryEditor() {
                       items={mediaItems}
                       profileImage={profileImage}
                       profileName={profileName}
-                      className="rounded-xl overflow-hidden absolute inset-0"
+                      className="rounded-xl overflow-hidden"
                       isPhonePreview={true}
+                      hideNavigation={true}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 rounded-xl">
