@@ -188,7 +188,30 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
         ))}
       </div>
 
-      {modal}
+      {selectedStory && (
+        <div 
+          className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center"
+          onClick={() => setSelectedStory(null)}
+        >
+          <div 
+            className="relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-full h-full flex items-center justify-center">
+              <StoryStyle
+                variant="preview"
+                story={selectedStory}
+                items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+                profileImage={selectedStory.profile_image || undefined}
+                profileName={selectedStory.profile_name || undefined}
+                onComplete={() => setSelectedStory(null)}
+                className="rounded-xl overflow-hidden"
+                isPhonePreview={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

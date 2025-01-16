@@ -471,6 +471,7 @@ function StoryEditor() {
                       profileImage={profileImage}
                       profileName={profileName}
                       className="rounded-xl overflow-hidden absolute inset-0"
+                      isPhonePreview={true}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100 rounded-xl">

@@ -171,6 +171,7 @@ export default function StoryStyle({
   const goToNextStory = useCallback(() => {
     if (isLastStory) {
       onComplete?.()
+      resetProgress()
     } else {
       onNextStory?.()
       setCurrentIndex(0)
@@ -204,7 +205,7 @@ export default function StoryStyle({
       setCurrentIndex(prev => prev + 1)
       resetProgress()
     } else {
-      // Si on est sur la dernière frame, on passe à la story suivante
+      // Si on est sur la dernière frame, on ferme la story
       if (isLastStory) {
         onComplete?.()
       } else {
@@ -219,7 +220,7 @@ export default function StoryStyle({
   useEffect(() => {
     setCurrentIndex(0)
     resetProgress()
-  }, [story?.id, resetProgress]) // On ajoute story?.id comme dépendance
+  }, [story?.id, resetProgress])
 
   useEffect(() => {
     if (!currentItem) return
@@ -255,7 +256,12 @@ export default function StoryStyle({
         if (newProgress >= PROGRESS_BAR_WIDTH) {
           elapsedBeforePauseRef.current = 0
           resetProgress()
-          goToNextStory()
+          // Si c'est la dernière frame de la dernière story, on ferme
+          if (isLastItem && isLastStory) {
+            onComplete?.()
+          } else {
+            goToNextFrame()
+          }
         } else {
           setProgress(newProgress)
         }
@@ -264,23 +270,23 @@ export default function StoryStyle({
       progressTimerRef.current = timer
       return () => clearInterval(timer)
     }
-  }, [currentIndex, currentItem, isPaused, goToNextStory, resetProgress])
+  }, [currentIndex, currentItem, isPaused, goToNextFrame, resetProgress, isLastItem, isLastStory, onComplete])
 
   if (!mounted || !currentItem) return null
 
   return (
     <div className="relative w-full max-w-[800px] mx-auto flex items-center justify-center">
       {/* Left Navigation */}
-      <div className="absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
+      <div className={`absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
         {/* Story navigation */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             goToPrevStory()
           }}
-          disabled={isFirstStory}
+          disabled={isFirstStory || isPhonePreview}
           className={`text-white transition-all ${
-            isFirstStory
+            isFirstStory || isPhonePreview
               ? 'opacity-30 cursor-not-allowed' 
               : 'hover:text-white/90'
           }`}
@@ -297,9 +303,9 @@ export default function StoryStyle({
             e.stopPropagation()
             goToPrevFrame()
           }}
-          disabled={currentIndex === 0 && isFirstStory}
+          disabled={currentIndex === 0 && isFirstStory || isPhonePreview}
           className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-            currentIndex === 0 && isFirstStory
+            currentIndex === 0 && isFirstStory || isPhonePreview
               ? 'opacity-30 cursor-not-allowed' 
               : 'hover:bg-white/90'
           }`}
@@ -324,7 +330,9 @@ export default function StoryStyle({
               >
                 <div
                   className={`h-full bg-white rounded-full ${
-                    index === currentIndex && !isPaused && progress > 0 ? 'transition-[width] duration-200 ease-linear' : ''
+                    index === currentIndex && !isPaused
+                      ? progress > 0 ? 'transition-[width] duration-200 ease-linear' : 'transition-none'
+                      : 'transition-none'
                   }`}
                   style={{
                     width: `${index === currentIndex ? progress : index < currentIndex ? 100 : 0}%`,
@@ -382,11 +390,25 @@ export default function StoryStyle({
           <div className="absolute inset-0 flex">
             <div
               className="flex-1"
-              onClick={goToPrevStory}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (isPhonePreview && currentIndex === 0) {
+                  onComplete?.()
+                } else {
+                  goToPrevFrame()
+                }
+              }}
             />
             <div
               className="flex-1"
-              onClick={goToNextStory}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (isPhonePreview && isLastItem) {
+                  onComplete?.()
+                } else {
+                  goToNextFrame()
+                }
+              }}
             />
           </div>
 
@@ -426,16 +448,16 @@ export default function StoryStyle({
       </div>
 
       {/* Right Navigation */}
-      <div className="absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
+      <div className={`absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
         {/* Frame navigation */}
         <button
           onClick={(e) => {
             e.stopPropagation()
             goToNextFrame()
           }}
-          disabled={isLastItem && isLastStory}
+          disabled={isLastItem && isLastStory || isPhonePreview}
           className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-            isLastItem && isLastStory
+            isLastItem && isLastStory || isPhonePreview
               ? 'opacity-30 cursor-not-allowed' 
               : 'hover:bg-white/90'
           }`}
@@ -449,17 +471,17 @@ export default function StoryStyle({
             e.stopPropagation()
             goToNextStory()
           }}
-          disabled={isLastStory}
+          disabled={isLastStory || isPhonePreview}
           className={`text-white transition-all ${
-            isLastStory
+            isLastStory || isPhonePreview
               ? 'opacity-30 cursor-not-allowed' 
               : 'hover:text-white/90'
           }`}
           title="Next story"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="5" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 19L19 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="18" y1="12" x2="5" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
@@ -557,4 +579,4 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
       </div>
     </div>
   )
-} 
+}
