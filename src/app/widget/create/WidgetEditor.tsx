@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -29,12 +29,13 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
     <div>
       {/* Search */}
       <div className="relative mb-6">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
           placeholder="Search stories..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-11 px-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+          className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
         />
       </div>
 

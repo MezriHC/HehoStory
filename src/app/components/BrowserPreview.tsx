@@ -338,7 +338,7 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
   const [viewMode, setViewMode] = useState<'home' | 'product'>('home')
-  const displayStories = widget.stories || stories || []
+  const displayStories = (widget?.stories || stories || [])
 
   useEffect(() => {
     setMounted(true)

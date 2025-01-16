@@ -41,6 +41,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
 
   const getMediaCount = (story: Story) => {
     try {
+      if (!story.content) return 0
       const content = JSON.parse(story.content)
       return content.mediaItems?.length || 0
     } catch {
@@ -50,6 +51,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
 
   const getMediaItems = (story: Story) => {
     try {
+      if (!story.content) return []
       const content = JSON.parse(story.content)
       return content.mediaItems || []
     } catch {
@@ -70,6 +72,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
         onComplete={() => setSelectedStory(null)}
         className="rounded-xl overflow-hidden"
         isPhonePreview={true}
+        isModal={true}
       />
     </div>,
     document.body
@@ -104,7 +107,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
   }, [selectedStory])
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Search bar */}
       <div className="relative mb-8">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -113,7 +116,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
           placeholder="Search stories..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-12 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+          className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
         />
       </div>
 
@@ -210,30 +213,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
         ))}
       </div>
 
-      {selectedStory && (
-        <div 
-          className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center"
-          onClick={() => setSelectedStory(null)}
-        >
-          <div 
-            className="relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-full h-full flex items-center justify-center">
-              <StoryStyle
-                variant="preview"
-                story={selectedStory}
-                items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
-                profileImage={selectedStory.profile_image || undefined}
-                profileName={selectedStory.profile_name || undefined}
-                onComplete={() => setSelectedStory(null)}
-                className="rounded-xl overflow-hidden"
-                isPhonePreview={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {modal}
     </div>
   )
 } 
