@@ -1,180 +1,107 @@
-# HehoStory - E-commerce Story Platform
+# HehoStory - Plateforme de Stories E-commerce
 
-## Présentation de l'outil
-HehoStory est un outil qui permet aux marques e-commerce de créer des "stories" similaires à celles des réseaux sociaux comme Instagram, et de les afficher sur les pages produits de leur site web.
+## Vue d'ensemble
+HehoStory est une solution SaaS permettant aux e-commerçants de créer et d'intégrer des stories interactives sur leurs sites web, similaires à celles d'Instagram.
 
-## Bonnes Pratiques de Développement
+## Architecture Technique
 
-### Architecture des Composants
-1. **Composants Autonomes**
-   - Chaque fonctionnalité majeure doit être un composant distinct
-   - Éviter les composants imbriqués complexes
-   - Un composant = une responsabilité unique
+### Stack Technologique
+- **Frontend** : Next.js (React 18.2.0)
+- **Langage** : TypeScript
+- **Styling** : TailwindCSS 3.4.1
+- **Backend** : Supabase
+- **Gestion des médias** : React Dropzone
+- **UI Kit** : Heroicons
 
-2. **Réutilisation des Composants**
-   - Si un composant est utilisé dans plusieurs pages, le placer dans `components/common/`
-   - Créer des composants génériques et programmables via les props
-   - Exemple : `Button`, `Card`, `Modal` doivent être réutilisables
+### Structure des Composants
 
-3. **Props Standardisées**
-   - Textes et labels en props pour faciliter l'internationalisation
-   - Styles personnalisables via les props
-   - Callbacks pour les actions (`onClick`, `onSubmit`, etc.)
+#### 1. Composants Core
+- **StoryEditor** : Création et édition de stories
+- **StoryPreview** : Prévisualisation en temps réel
+- **WidgetManager** : Gestion des widgets intégrables
+- **MediaUploader** : Gestion des uploads médias
 
-4. **Simplicité**
-   - Un fichier = une fonctionnalité
-   - Éviter les composants trop complexes ou trop imbriqués
-   - Documenter clairement l'utilisation des props
-   - Utiliser des noms explicites pour les composants et leurs props
+#### 2. Composants Utilitaires
+- **Container** : Layout responsive
+- **EmptyState** : États vides stylisés
+- **Toast** : Notifications système
+- **Header** : Navigation principale
 
-
-### Exemples de Composants Réutilisables
-```typescript
-// Mauvaise pratique
-<Button>Créer une story</Button>
-
-// Bonne pratique
-<Button
-  label={t('create.story')}
-  icon={<PlusIcon />}
-  variant="primary"
-  onClick={handleCreate}
-/>
-```
-
-## Technologies utilisées
-- Next.js - Framework React avec rendu côté serveur
-- React 18.2.0 - Bibliothèque UI
-- TypeScript - Typage statique
-- TailwindCSS 3.4.1 - Framework CSS utilitaire
-- Supabase - Base de données et backend
-- Heroicons - Bibliothèque d'icônes
-- React Dropzone - Gestion des uploads de fichiers
-
-## Architecture du Projet
-
-### Pages Principales
-1. **Page d'accueil** (`/`)
-   - Landing page présentant l'outil
-   - Accès rapide à la création de stories et widgets
-
-2. **Stories** (`/story`)
-   - Liste des stories créées
-   - Bouton de création de nouvelle story
-   - Interface de gestion des stories existantes
-
-3. **Création de Story** (`/story/create`)
-   - Interface drag-and-drop pour l'upload de médias
-   - Éditeur de story avec prévisualisation en temps réel
-   - Configuration de la durée des slides
-   - Support des images et vidéos
-
-4. **Widgets** (`/widget`)
-   - Gestion des widgets pour l'intégration sur les sites e-commerce
-   - Création et personnalisation des widgets
-   - Configuration des stories à afficher
-
-## Structure des Fichiers
-
-### Organisation Générale
+### Organisation du Projet
 ```
 src/
-├── app/                    # Application principale
-│   ├── components/         # Composants réutilisables
-│   │   ├── EmptyState.tsx         # État vide générique
-│   │   ├── Header.tsx             # En-tête de l'application
-│   │   ├── MediaGrid.tsx          # Grille de médias
-│   │   ├── ProductPageSkeleton.tsx # Squelette de page produit
-│   │   ├── StoriesList.tsx        # Liste des stories
-│   │   ├── StoryPreview.tsx       # Prévisualisation de story
-│   │   ├── Toast.tsx              # Notifications toast
-│   │   └── WidgetFormatSelector.tsx # Sélecteur de format widget
-│   ├── profile/           # Pages de profil utilisateur
-│   ├── story/             # Pages liées aux stories
-│   ├── widget/            # Pages de gestion des widgets
-│   ├── page.tsx           # Page d'accueil
-│   ├── layout.tsx         # Layout principal
-│   └── globals.css        # Styles globaux
-└── types/                 # Définitions de types TypeScript
-
+├── app/
+│   ├── components/      # Composants réutilisables
+│   ├── story/          # Gestion des stories
+│   ├── widget/         # Gestion des widgets
+│   ├── profile/        # Profil utilisateur
+│   └── globals.css     # Styles globaux
+└── types/             # Types TypeScript
 ```
 
-### Organisation des Composants
-- **Components**: Composants réutilisables à travers l'application
-  - Chaque composant est un fichier TypeScript React (.tsx)
-  - Nommage explicite reflétant la fonction du composant
-  - Organisation plate pour une meilleure découvrabilité
+## Fonctionnalités Principales
 
-### Structure des Routes (Next.js App Router)
-- **/** - Page d'accueil
-- **/story** - Gestion des stories
-- **/story/create** - Création de nouvelles stories
-- **/widget** - Gestion des widgets
-- **/widget/create** - Création de widgets
-- **/profile** - Gestion du profil utilisateur
+### 1. Gestion des Stories
+- Upload de médias (images/vidéos)
+- Configuration des durées
+- Réorganisation par drag-and-drop
+- Prévisualisation mobile
 
-## Composants Principaux
+### 2. Widgets E-commerce
+- Création de widgets personnalisables
+- Options d'intégration flexibles
+- Configuration des stories à afficher
+- Styles adaptables
 
-### Header
-- Logo HehoStory
-- Navigation principale (Stories, Widgets)
-- Sélecteur de langue (FR/EN)
-- Accès au profil utilisateur
-- Style minimaliste avec animations subtiles
+### 3. Interface Utilisateur
+- Design responsive
+- Support multilingue (FR/EN)
+- Mode clair par défaut
+- Animations optimisées
 
-### StoryEditor
-- Interface de création/édition de story
-- Gestion des slides (images/vidéos)
-- Configuration de la durée par slide
-- Fonctionnalités drag-and-drop pour réorganisation
-- Contrôles de suppression et modification
+## Bonnes Pratiques
 
-### StoryPreview
-- Prévisualisation en temps réel des stories
-- Simulation du rendu mobile
-- Navigation entre les slides
-- Indicateurs de progression
+### 1. Développement
+- Un composant = une responsabilité
+- Props typées et documentées
+- Composants autonomes et réutilisables
+- Code commenté et maintainable
 
-### Container
-- Composant de mise en page réutilisable
-- Gestion des marges et du centrage
-- Responsive design
+### 2. Style et Design
+```typescript
+// Structure recommandée des composants
+interface ComponentProps {
+  label: string;
+  variant?: 'primary' | 'secondary';
+  onAction: () => void;
+}
 
-### EmptyState
-- Affichage des états vides
-- Messages d'invitation à l'action
-- Design engageant et informatif
+const Component: React.FC<ComponentProps> = ({
+  label,
+  variant = 'primary',
+  onAction
+}) => {
+  // Implementation
+};
+```
 
-## Style et Design
-- Mode clair (light mode) par défaut
-- Palette de couleurs minimaliste:
-  - Fond blanc (#ffffff)
-  - Texte noir (#171717)
-  - Nuances de gris pour les éléments secondaires
-- Typographie moderne et lisible
-- Animations subtiles pour améliorer l'UX
-- Design responsive et adaptatif
-- Interface épurée et professionnelle
-
-## Fonctionnalités Clés
-1. **Gestion des Stories**
-   - Upload d'images et vidéos
-   - Configuration de la durée
-   - Réorganisation des slides
-   - Prévisualisation en temps réel
-
-2. **Widgets Personnalisables**
-   - Création de widgets intégrables
-   - Configuration des stories à afficher
-   - Options de personnalisation
-
-3. **Internationalisation**
-   - Support multilingue (FR/EN)
-   - Interface de changement de langue
-
-4. **Gestion de Profil**
-   - Configuration du compte
-   - Personnalisation de l'affichage des stories
+### 3. Internationalisation
+- Textes externalisés
+- Support complet FR/EN
+- Messages d'interface traduits
 
 ## Règles de Déploiement
-IMPORTANT: NE JAMAIS MODIFIER LES FICHIERS OU CONFIGURATIONS QUI PEUVENT AFFECTER LE DÉPLOIEMENT SUR CLOUDFLARE PAGES.
+- Ne pas modifier les fichiers de configuration de déploiement
+- Respecter la structure des routes Next.js
+- Tester avant chaque déploiement
+
+## Palette de Couleurs
+- Fond : #ffffff
+- Texte : #171717
+- Accents : Nuances de gris
+- Éléments interactifs : Couleurs brand
+
+
+
+
+Mettre en place l’option d’alignement des widgets (à gauche, milieu, à droite) Mettre en place une animation de transition entre les story  Mettre en place une animation de fermeture Corriger le problème de la couleur de la bordure et la connecter la base de donnée Connecter le nom du compte et la photo à la base de donnée Corriger le problème du bouton mute qui influence la story. Corriger el problème du bouton fermer qui ne fonctionne pas. Ajouter le système de rangement dans des dossiers Ajouter le nom de la story sous chaque story dans le widget, et l’adapter en fonction du style. Mettre une limite de caractère au niveau du nom de la story (afficher… si on les dépasse) Ajouter la traduction. Supprimer le preview popup au niveau de l’étape de creation garder juste le preview inline, supprimer le bouton preview au niveau de cette étape également Quand j’essaye d’uploader une vidéo ça mets super longtemps à s’enregistrer et à la fin j’ai : Failed to save story. Please try again. Il faut corriger ce problème.
