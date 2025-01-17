@@ -31,7 +31,7 @@ export default function StoriesPage() {
         console.log('Debug - Loading stories for user:', userId)
         const { data, error } = await supabase
           .from('stories')
-          .select('*')
+          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
           .eq('author_id', userId)
           .order('created_at', { ascending: false })
 

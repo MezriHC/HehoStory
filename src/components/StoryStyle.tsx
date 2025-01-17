@@ -42,93 +42,6 @@ interface StoryCarouselProps {
 const STORY_DURATION = 5000 // 5 seconds for images
 const PROGRESS_BAR_WIDTH = 100 // percentage
 
-// Nouveau composant pour les thumbnails vidéo
-function VideoThumbnail({ url, className }: { url: string, className?: string }) {
-  const [thumbnail, setThumbnail] = useState<string | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas) return
-
-    // Créer une URL blob pour la vidéo
-    const videoBlob = fetch(url)
-      .then(response => response.blob())
-      .then(blob => {
-        const blobUrl = URL.createObjectURL(blob)
-        video.src = blobUrl
-
-        const handleLoadedMetadata = () => {
-          // Choisir un moment aléatoire dans la première moitié de la vidéo
-          const randomTime = Math.random() * (video.duration / 2)
-          video.currentTime = randomTime
-        }
-
-        const handleSeeked = () => {
-          const context = canvas.getContext('2d')
-          if (!context) return
-
-          // Définir les dimensions du canvas pour correspondre à la vidéo
-          canvas.width = video.videoWidth
-          canvas.height = video.videoHeight
-
-          // Dessiner la frame actuelle sur le canvas
-          context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-          try {
-            // Convertir le canvas en URL de données
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-            setThumbnail(dataUrl)
-          } catch (error) {
-            console.error('Erreur lors de la génération de la miniature:', error)
-            // En cas d'erreur, on utilise une miniature par défaut
-            setThumbnail(null)
-          }
-
-          // Nettoyer
-          video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-          video.removeEventListener('seeked', handleSeeked)
-          URL.revokeObjectURL(blobUrl)
-          video.src = ''
-        }
-
-        video.addEventListener('loadedmetadata', handleLoadedMetadata)
-        video.addEventListener('seeked', handleSeeked)
-      })
-      .catch(error => {
-        console.error('Erreur lors du chargement de la vidéo:', error)
-        setThumbnail(null)
-      })
-
-    return () => {
-      if (video) {
-        video.removeEventListener('loadedmetadata', () => {})
-        video.removeEventListener('seeked', () => {})
-        video.src = ''
-      }
-    }
-  }, [url])
-
-  return (
-    <>
-      <video ref={videoRef} className="hidden" preload="metadata" crossOrigin="anonymous" />
-      <canvas ref={canvasRef} className="hidden" />
-      {thumbnail ? (
-        <img src={thumbnail} alt="" className={className} />
-      ) : (
-        <div className={`${className} bg-gray-200 flex items-center justify-center`}>
-          <div className="relative">
-            <Play className="w-8 h-8 text-gray-400" />
-            <div className="absolute inset-0 animate-pulse bg-gray-300/50 rounded-full" />
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
 export default function StoryStyle({ 
   variant,
   story,
@@ -190,8 +103,9 @@ export default function StoryStyle({
 
   // Rendu des vignettes
   if (variant !== 'preview') {
-    const mediaUrl = story?.content ? JSON.parse(story.content).mediaItems[0]?.url : null
-    const mediaType = story?.content ? JSON.parse(story.content).mediaItems[0]?.type : null
+    const mediaContent = story?.content ? JSON.parse(story.content) : null
+    const mediaUrl = story?.thumbnail || mediaContent?.mediaItems[0]?.url
+    const mediaType = mediaContent?.mediaItems[0]?.type
     const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size][variant]} ${className} relative cursor-pointer group flex-shrink-0`
 
     // Déterminer la largeur maximale en fonction du variant et de la taille
@@ -215,26 +129,11 @@ export default function StoryStyle({
             <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
               {mediaUrl ? (
                 <>
-                  {mediaType === 'video' ? (
-                    <div className="w-full h-full">
-                      <video 
-                        className="w-full h-full object-cover"
-                        src={mediaUrl}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img 
-                      src={mediaUrl} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  <img 
+                    src={mediaUrl} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/10">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
@@ -251,26 +150,11 @@ export default function StoryStyle({
             <div className="w-full h-full rounded-[inherit] overflow-hidden relative">
               {mediaUrl ? (
                 <>
-                  {mediaType === 'video' ? (
-                    <div className="w-full h-full">
-                      <video 
-                        className="w-full h-full object-cover"
-                        src={mediaUrl}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img 
-                      src={mediaUrl} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  <img 
+                    src={mediaUrl} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/10">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />

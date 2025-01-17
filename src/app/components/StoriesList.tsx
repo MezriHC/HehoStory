@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Pencil, Search, Trash2, X, MoreHorizontal, Heart, Send, Image as ImageIcon, Play, Globe2 } from 'lucide-react'
+import { Eye, Pencil, Search, Trash2, X, MoreHorizontal, Heart, Send, Image as ImageIcon, Play, Globe2, User, Clock, Lock } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
@@ -149,9 +149,9 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
       </div>
 
       {/* Stories grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredStories.map(story => (
-          <div key={story.id} className="group relative">
+          <div key={story.id} className="relative">
             <DeleteConfirmation 
               isOpen={showDeleteConfirm === story.id}
               onClose={() => setShowDeleteConfirm(null)}
@@ -164,93 +164,91 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
             />
 
             {/* Story card */}
-            <div className="bg-white border border-gray-200/75 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+            <div className="bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1">
               {/* Thumbnail */}
-              <div className="relative aspect-[16/9] bg-gray-100 group/thumbnail">
+              <div className="relative aspect-[9/16] bg-gray-100">
                 {story.thumbnail ? (
-                  <>
-                    {getThumbnail(story)?.type === 'video' ? (
-                      <div className="absolute inset-0">
-                        <video 
-                          className="w-full h-full object-cover"
-                          src={getThumbnail(story)?.url}
-                          preload="metadata"
-                          muted
-                          playsInline
-                          onLoadedMetadata={(e) => {
-                            e.currentTarget.currentTime = e.currentTarget.duration * 0.25
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <img
-                        src={getThumbnail(story)?.url || story.thumbnail}
-                        alt={story.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    )}
-                  </>
+                  <img
+                    src={story.thumbnail}
+                    alt={story.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <ImageIcon className="w-8 h-8 text-gray-400" />
                   </div>
                 )}
-                {/* Overlay with quick actions */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover/thumbnail:opacity-100 transition-all duration-300">
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 translate-y-2 group-hover/thumbnail:translate-y-0 transition-transform duration-300">
+                
+                {/* Story Info Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
+                  {/* Author info if available */}
+                  {story.profile_image || story.profile_name ? (
+                    <div className="flex items-center gap-2 mb-3">
+                      {story.profile_image ? (
+                        <img 
+                          src={story.profile_image} 
+                          alt={story.profile_name || ''} 
+                          className="w-8 h-8 rounded-full border border-white/20"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-500/20 border border-white/20 flex items-center justify-center">
+                          <User className="w-4 h-4 text-white/80" />
+                        </div>
+                      )}
+                      {story.profile_name && (
+                        <span className="text-white/90 text-sm font-medium">
+                          {story.profile_name}
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <h3 className="text-white font-semibold mb-2 truncate">
+                    {story.title}
+                  </h3>
+
+                  {/* Story metadata */}
+                  <div className="flex flex-col gap-1.5 mb-4">
+                    <div className="flex items-center gap-3 text-white/70 text-xs">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {new Date(story.created_at).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        {getMediaCount(story)} médias
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedStory(story)}
+                      className="flex items-center justify-center flex-1 h-9 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                    >
+                      <Play className="w-4 h-4 mr-1.5" />
+                      Preview
+                    </button>
+                    <div className="flex items-center gap-2">
                       <Link
                         href={`/story/create?edit=${story.id}`}
-                        className="flex items-center space-x-2 px-3 h-8 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        className="flex items-center justify-center w-9 h-9 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
                       >
                         <Pencil className="w-4 h-4" />
-                        <span>Edit</span>
                       </Link>
                       <button
                         onClick={() => setShowDeleteConfirm(story.id)}
-                        className="flex items-center space-x-2 px-3 h-8 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        className="group flex items-center justify-center w-9 h-9 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Delete</span>
+                        <Trash2 className="w-4 h-4 group-hover:text-red-300 transition-colors" />
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      {story.title}
-                    </h3>
-                    <div className="flex items-center space-x-3 text-sm text-gray-500">
-                      <span>
-                        {new Date(story.created_at).toLocaleDateString()}
-                      </span>
-                      <span className="flex items-center">
-                        <ImageIcon className="w-4 h-4 mr-1" />
-                        {getMediaCount(story)}
-                      </span>
-                    </div>
-                  </div>
-                  {story.published && (
-                    <div className="flex items-center space-x-1 px-2.5 h-6 text-xs font-medium text-green-700 bg-green-100 rounded-full">
-                      <Globe2 className="w-3 h-3" />
-                      <span>Public</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <button
-                    onClick={() => setSelectedStory(story)}
-                    className="flex items-center justify-center w-full h-9 text-sm font-medium text-gray-700 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Preview Story
-                  </button>
                 </div>
               </div>
             </div>

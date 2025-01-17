@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Package, Store } from 'lucide-react'
+import { Package, Store, ArrowRight } from 'lucide-react'
 
 export type WidgetSize = 'S' | 'M' | 'L'
 export type WidgetAlignment = 'left' | 'center' | 'right'
@@ -52,6 +52,7 @@ const formats = [
 
 export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSelectorProps) {
   const [view, setView] = useState<'product' | 'home'>('product')
+  const [hoveredFormat, setHoveredFormat] = useState<string | null>(null)
 
   const handleFormatChange = (newFormat: Partial<WidgetFormat>) => {
     onChange({
@@ -259,59 +260,59 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
   )
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Controls */}
-      <div className="flex flex-col gap-6 mb-6">
+      <div className="flex flex-col gap-8">
         {/* View Toggle */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Type d'écran
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Où souhaitez-vous afficher votre widget ?
           </label>
-          <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[300px]">
+          <div className="flex h-12 bg-gray-100 rounded-xl p-1.5 w-[320px]">
             <button
               onClick={() => setView('product')}
               className={`
-                flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
+                flex-1 flex items-center justify-center gap-2.5 rounded-lg text-sm font-medium transition-all duration-200
                 ${view === 'product'
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'}
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
             >
               <Package className="w-4 h-4" />
-              Produit
+              Page Produit
             </button>
             <button
               onClick={() => setView('home')}
               className={`
-                flex-1 flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors
+                flex-1 flex items-center justify-center gap-2.5 rounded-lg text-sm font-medium transition-all duration-200
                 ${view === 'home'
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'}
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
             >
               <Store className="w-4 h-4" />
-              Accueil
+              Page d'Accueil
             </button>
           </div>
         </div>
 
         {/* Size and Alignment Controls */}
-        <div className="flex gap-6">
+        <div className="flex gap-8">
           {/* Size Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Taille du widget
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Quelle taille pour votre widget ?
             </label>
-            <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
+            <div className="flex h-12 bg-gray-100 rounded-xl p-1.5 w-[200px]">
               {(['S', 'M', 'L'] as const).map((size) => (
                 <button
                   key={size}
                   onClick={() => handleFormatChange({ size })}
                   className={`
-                    w-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors
+                    flex-1 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200
                     ${value?.size === size
                       ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'}
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
                   `}
                 >
                   {size}
@@ -322,19 +323,19 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
 
           {/* Alignment Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alignement
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Comment aligner les stories ?
             </label>
-            <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
+            <div className="flex h-12 bg-gray-100 rounded-xl p-1.5 w-[240px]">
               {(['left', 'center', 'right'] as const).map((alignment) => (
                 <button
                   key={alignment}
                   onClick={() => handleFormatChange({ alignment })}
                   className={`
-                    flex-1 flex items-center justify-center rounded-md text-sm font-medium transition-colors
+                    flex-1 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200
                     ${value?.alignment === alignment
                       ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'}
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
                   `}
                 >
                   {alignment === 'left' && 'Gauche'}
@@ -347,47 +348,59 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      {/* Format Cards */}
+      <div className="grid grid-cols-3 gap-6">
         {formats.map((format) => (
           <button
             key={format.type}
             onClick={() => handleFormatChange({ type: format.type })}
+            onMouseEnter={() => setHoveredFormat(format.type)}
+            onMouseLeave={() => setHoveredFormat(null)}
             className={`
-              group relative transition-all duration-200
+              group relative transition-all duration-300 ease-out
               ${value?.type === format.type ? 'scale-[1.02]' : ''}
             `}
           >
-            {/* Card background */}
+            {/* Card background with improved hover effect */}
             <div className={`
-              absolute inset-0 rounded-2xl transition-all duration-200 bg-white
+              absolute inset-0 rounded-2xl transition-all duration-300 ease-out bg-white
               ${value?.type === format.type
-                ? 'border-[3px] border-gray-600'
-                : 'border-2 border-gray-200 group-hover:border-gray-300'}
+                ? 'border-[3px] border-gray-900 shadow-lg'
+                : hoveredFormat === format.type
+                ? 'border-2 border-gray-400 shadow-md'
+                : 'border-2 border-gray-200 shadow-sm'}
             `} />
 
-            <div className="relative p-4">
-              {/* Format preview */}
-              <div className="mb-4 max-w-[280px] mx-auto">
+            <div className="relative p-5">
+              {/* Format preview with improved spacing */}
+              <div className="mb-5 max-w-[280px] mx-auto">
                 {view === 'product' 
                   ? <ProductPreview type={format.type} /> 
                   : <HomePreview type={format.type} />
                 }
               </div>
 
-              {/* Format info */}
-              <div className="text-left">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-medium text-gray-900">
+              {/* Format info with improved layout */}
+              <div className="text-left space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-gray-900 flex items-center gap-2 group-hover:text-gray-900">
                     {format.label}
+                    <ArrowRight className={`w-4 h-4 transition-transform duration-300 ${
+                      value?.type === format.type || hoveredFormat === format.type
+                        ? 'translate-x-1 opacity-100'
+                        : 'opacity-0'
+                    }`} />
                   </h3>
                   <div className={`
-                    w-4 h-4 rounded-full border-2 transition-colors duration-200
+                    w-5 h-5 rounded-full border-2 transition-all duration-300
                     ${value?.type === format.type
-                      ? 'border-gray-600 bg-gray-600'
-                      : 'border-gray-300 group-hover:border-gray-400'}
+                      ? 'border-gray-900 bg-gray-900 scale-110'
+                      : hoveredFormat === format.type
+                      ? 'border-gray-400 scale-105'
+                      : 'border-gray-300'}
                   `} />
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 group-hover:text-gray-600">
                   {format.description}
                 </p>
               </div>

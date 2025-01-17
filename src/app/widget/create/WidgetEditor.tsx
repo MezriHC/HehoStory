@@ -64,29 +64,14 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
             `}
           >
             <div className="aspect-[16/9] relative bg-gray-100">
-              {story.thumbnail && (
-                <div className="absolute inset-0">
-                  {getMediaType(story) === 'video' ? (
-                    <div className="relative w-full h-full">
-                      <video 
-                        className="w-full h-full object-cover"
-                        src={story.thumbnail}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        onLoadedMetadata={(e) => {
-                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img
-                      src={story.thumbnail}
-                      alt={story.title}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
+              {story.thumbnail ? (
+                <img
+                  src={story.thumbnail}
+                  alt={story.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100" />
               )}
             </div>
             <div className="p-3">
@@ -243,7 +228,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
         // Charger les stories
         const { data: storiesData, error: storiesError } = await authClient
           .from('stories')
-          .select('*')
+          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
           .eq('author_id', userId)
           .order('created_at', { ascending: false })
 

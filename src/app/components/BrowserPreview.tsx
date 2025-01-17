@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat, WidgetSize } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
@@ -29,6 +29,9 @@ function convertWidgetSizeToStorySize(widgetSize: WidgetSize): 'sm' | 'md' | 'lg
   }
 }
 
+// Memoize the story carousel to prevent unnecessary re-renders
+const MemoizedStoryCarousel = React.memo(StoryCarousel)
+
 function ProductSkeleton({ 
   widget, 
   stories,
@@ -43,7 +46,7 @@ function ProductSkeleton({
   onClose: () => void
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
-  const displayStories = widget.stories || stories || []
+  const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
 
   // Définir les classes d'alignement pour le conteneur
   const getContainerAlignmentClasses = () => {
@@ -135,7 +138,7 @@ function ProductSkeleton({
             {isInlineWidget && displayStories.length > 0 && (
               <div className="mb-8 relative w-full overflow-hidden">
                 <div className={`flex flex-col ${getContainerAlignmentClasses()}`}>
-                  <StoryCarousel
+                  <MemoizedStoryCarousel
                     stories={displayStories}
                     variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
                     size={convertWidgetSizeToStorySize(widget.format.size)}
@@ -207,7 +210,7 @@ function HomeSkeleton({
   onClose: () => void
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
-  const displayStories = widget.stories || stories || []
+  const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
 
   // Définir les classes d'alignement pour le conteneur
   const getContainerAlignmentClasses = () => {
@@ -300,7 +303,7 @@ function HomeSkeleton({
         <div className="bg-white py-16">
           <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative overflow-hidden`}>
             <div className={`flex flex-col ${getContainerAlignmentClasses()}`}>
-              <StoryCarousel
+              <MemoizedStoryCarousel
                 stories={displayStories}
                 variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
                 size={convertWidgetSizeToStorySize(widget.format.size)}

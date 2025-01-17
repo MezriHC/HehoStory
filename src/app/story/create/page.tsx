@@ -190,9 +190,11 @@ function StoryEditor() {
   const [mounted, setMounted] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [thumbnail, setThumbnail] = useState<{ file: File | null; url: string | null }>({ file: null, url: null })
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const profileImageInputRef = useRef<HTMLInputElement>(null)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get('edit')
@@ -241,9 +243,30 @@ function StoryEditor() {
     }
   }
 
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Vérifier si c'est une image
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image comme miniature')
+      return
+    }
+
+    // Créer une URL locale pour la prévisualisation
+    const localUrl = URL.createObjectURL(file)
+    setThumbnail({ file, url: localUrl })
+  }
+
   const handleSave = async () => {
     if (!userId) {
       console.error('No user ID available')
+      return
+    }
+
+    // Vérifier si on a soit une nouvelle thumbnail, soit une thumbnail existante
+    if (!thumbnail.file && !thumbnail.url) {
+      alert('Veuillez ajouter une miniature pour votre story')
       return
     }
 
@@ -251,122 +274,139 @@ function StoryEditor() {
     try {
       setUploadProgress(0)
 
-      // Vérifier si des médias sont en cours d'upload
-      if (mediaItems.length > 0) {
-        let processed = 0
-        const processedMediaItems = await Promise.all(
-          mediaItems.map(async (item) => {
-            try {
-              // Si c'est un nouveau fichier à uploader
-              if (item.file) {
-                const filePath = `${userId}/stories/${Date.now()}-${item.file.name}`
-                const { error: uploadError } = await supabase.storage
-                  .from('media')
-                  .upload(filePath, item.file, {
-                    cacheControl: '3600',
-                    upsert: false
-                  })
+      // Upload de la miniature seulement si c'est un nouveau fichier
+      let thumbnailUrl = thumbnail.url || ''
+      if (thumbnail.file) {
+        const thumbnailPath = `${userId}/thumbnails/${Date.now()}-${thumbnail.file.name}`
+        const { error: thumbnailError } = await supabase.storage
+          .from('media')
+          .upload(thumbnailPath, thumbnail.file, {
+            cacheControl: '3600',
+            upsert: false
+          })
 
-                if (uploadError) {
-                  throw new Error(`Erreur d'upload: ${uploadError.message}`)
-                }
+        if (thumbnailError) {
+          throw new Error(`Erreur d'upload de la miniature: ${thumbnailError.message}`)
+        }
 
-                const { data: { publicUrl } } = supabase.storage
-                  .from('media')
-                  .getPublicUrl(filePath)
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(thumbnailPath)
+        
+        thumbnailUrl = publicUrl
+      }
 
-                // Si c'est une vidéo, générer et sauvegarder une miniature
-                let thumbnailUrl = publicUrl
-                if (item.type === 'video') {
-                  try {
-                    // Générer la miniature
-                    const base64Thumbnail = await generateVideoThumbnail(publicUrl)
-                    
-                    // Convertir le base64 en blob
-                    const response = await fetch(base64Thumbnail)
-                    const blob = await response.blob()
-                    
-                    // Upload la miniature
-                    const thumbnailPath = `${userId}/thumbnails/${Date.now()}-${item.file.name.replace(/\.[^/.]+$/, '')}.jpg`
-                    const { error: thumbnailError } = await supabase.storage
-                      .from('media')
-                      .upload(thumbnailPath, blob, {
-                        contentType: 'image/jpeg',
-                        cacheControl: '3600',
-                        upsert: false
-                      })
+      if (!thumbnailUrl) {
+        throw new Error('Une miniature est requise pour sauvegarder la story')
+      }
 
-                    if (thumbnailError) throw thumbnailError
+      // Traiter les médias même s'il n'y en a pas de nouveaux
+      let processed = 0
+      const processedMediaItems = await Promise.all(
+        mediaItems.map(async (item) => {
+          try {
+            // Si c'est un nouveau fichier à uploader
+            if (item.file) {
+              const filePath = `${userId}/stories/${Date.now()}-${item.file.name}`
+              const { error: uploadError } = await supabase.storage
+                .from('media')
+                .upload(filePath, item.file, {
+                  cacheControl: '3600',
+                  upsert: false
+                })
 
-                    const { data: { publicUrl: thumbnailPublicUrl } } = supabase.storage
-                      .from('media')
-                      .getPublicUrl(thumbnailPath)
+              if (uploadError) {
+                throw new Error(`Erreur d'upload: ${uploadError.message}`)
+              }
 
-                    thumbnailUrl = thumbnailPublicUrl
-                  } catch (error) {
-                    console.error('Erreur lors de la génération de la miniature:', error)
-                    // En cas d'erreur, on garde l'URL de la vidéo comme miniature
-                  }
-                }
+              const { data: { publicUrl } } = supabase.storage
+                .from('media')
+                .getPublicUrl(filePath)
 
-                processed++
-                setUploadProgress((processed / mediaItems.length) * 100)
+              // Si c'est une vidéo, générer et sauvegarder une miniature
+              let thumbnailUrl = publicUrl
+              if (item.type === 'video') {
+                try {
+                  // Générer la miniature
+                  const base64Thumbnail = await generateVideoThumbnail(publicUrl)
+                  
+                  // Convertir le base64 en blob
+                  const response = await fetch(base64Thumbnail)
+                  const blob = await response.blob()
+                  
+                  // Upload la miniature
+                  const thumbnailPath = `${userId}/thumbnails/${Date.now()}-${item.file.name.replace(/\.[^/.]+$/, '')}.jpg`
+                  const { error: thumbnailError } = await supabase.storage
+                    .from('media')
+                    .upload(thumbnailPath, blob, {
+                      contentType: 'image/jpeg',
+                      cacheControl: '3600',
+                      upsert: false
+                    })
 
-                return {
-                  ...item,
-                  url: publicUrl,
-                  thumbnailUrl: thumbnailUrl, // Ajouter l'URL de la miniature
-                  file: null
+                  if (thumbnailError) throw thumbnailError
+
+                  const { data: { publicUrl: thumbnailPublicUrl } } = supabase.storage
+                    .from('media')
+                    .getPublicUrl(thumbnailPath)
+
+                  thumbnailUrl = thumbnailPublicUrl
+                } catch (error) {
+                  console.error('Erreur lors de la génération de la miniature:', error)
+                  // En cas d'erreur, on garde l'URL de la vidéo comme miniature
                 }
               }
-              // Si c'est un fichier existant, on garde tel quel
+
+              processed++
+              setUploadProgress((processed / mediaItems.length) * 100)
+
               return {
                 ...item,
+                url: publicUrl,
+                thumbnailUrl: thumbnailUrl,
                 file: null
               }
-            } catch (error) {
-              console.error('Erreur lors du traitement du média:', error)
-              throw error
             }
-          })
-        )
+            // Si c'est un fichier existant, on garde tel quel
+            return item
+          } catch (error) {
+            console.error('Erreur lors du traitement du média:', error)
+            throw error
+          }
+        })
+      )
 
-        // Utiliser la miniature du premier média
-        const firstMedia = processedMediaItems[0]
-        const thumbnailUrl = firstMedia.thumbnailUrl || firstMedia.url
-
-        const storyData: SaveStoryData = {
-          title: title.trim(),
-          content: JSON.stringify({ mediaItems: processedMediaItems }),
-          thumbnail: thumbnailUrl,
-          profile_name: profileName.trim() || null,
-          profile_image: profileImage || null,
-          published: false,
-          author_id: userId,
-          tags: []
-        }
-
-        console.log('Debug - Story data:', storyData)
-
-        // Si on est en mode édition
-        if (editId) {
-          const { error } = await supabase
-            .from('stories')
-            .update(storyData)
-            .eq('id', editId)
-
-          if (error) throw error
-        } else {
-          // Créer une nouvelle story
-          const { error } = await supabase
-            .from('stories')
-            .insert([storyData])
-
-          if (error) throw error
-        }
-
-        router.push('/story')
+      const storyData: SaveStoryData = {
+        title: title.trim(),
+        content: JSON.stringify({ mediaItems: processedMediaItems }),
+        thumbnail: thumbnailUrl,
+        profile_name: profileName.trim() || null,
+        profile_image: profileImage || null,
+        published: false,
+        author_id: userId,
+        tags: []
       }
+
+      console.log('Debug - Story data:', storyData)
+
+      // Si on est en mode édition
+      if (editId) {
+        const { error } = await supabase
+          .from('stories')
+          .update(storyData)
+          .eq('id', editId)
+
+        if (error) throw error
+      } else {
+        // Créer une nouvelle story
+        const { error } = await supabase
+          .from('stories')
+          .insert([storyData])
+
+        if (error) throw error
+      }
+
+      router.push('/story')
     } catch (error) {
       console.error('Error saving story:', error)
       if (error instanceof Error) {
@@ -403,6 +443,9 @@ function StoryEditor() {
       setTitle(storyData.title)
       setProfileName(storyData.profile_name || '')
       setProfileImage(storyData.profile_image || '')
+      if (storyData.thumbnail) {
+        setThumbnail({ file: null, url: storyData.thumbnail })
+      }
       if (storyData.content) {
         const content = JSON.parse(storyData.content)
         const loadedMediaItems = content.mediaItems || []
@@ -551,7 +594,7 @@ function StoryEditor() {
             <button
               className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
-              disabled={!title.trim() || mediaItems.length === 0}
+              disabled={!title.trim() || mediaItems.length === 0 || (!thumbnail.file && !thumbnail.url)}
             >
               <Save className="w-4 h-4 mr-2" />
               {editId ? 'Save changes' : 'Save story'}
@@ -573,6 +616,58 @@ function StoryEditor() {
                 <p className="text-sm text-gray-500 mt-1">
                   Upload and organize your media to create an engaging story for your e-commerce site.
                 </p>
+              </div>
+
+              {/* Thumbnail Section */}
+              <div className="border-b border-gray-200 px-8 py-4">
+                <h3 className="text-base font-medium text-gray-900 mb-3">Story Thumbnail *</h3>
+                <div className="flex items-start space-x-6">
+                  <div className="relative group">
+                    {thumbnail.url ? (
+                      <div className="relative w-32 h-32">
+                        <img
+                          src={thumbnail.url}
+                          alt="Thumbnail"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => {
+                            if (thumbnail.url) URL.revokeObjectURL(thumbnail.url)
+                            setThumbnail({ file: null, url: null })
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => thumbnailInputRef.current?.click()}
+                        className="w-32 h-32 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-300"
+                      >
+                        <Upload className="w-8 h-8 text-gray-400" />
+                        <span className="text-sm text-gray-500 mt-2">Add thumbnail</span>
+                      </div>
+                    )}
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleThumbnailUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">
+                      This image will be used as the thumbnail for your story in lists and previews.
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Recommended format: JPG, PNG. Maximum size: 5 MB
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Profile Section */}

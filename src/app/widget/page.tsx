@@ -1,6 +1,6 @@
 'use client'
 
-import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, Pencil, Image as ImageIcon, Play } from 'lucide-react'
+import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, Pencil, Image as ImageIcon, Play, Clock, Square, Circle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -154,18 +154,21 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
       return <WidgetFormatIcon format={widget.format} />
     }
 
-    // Vérifier si le contenu est une vidéo
+    // Utiliser la thumbnail si elle existe, sinon fallback sur le premier média
+    let mediaUrl = firstStory.thumbnail
     let isVideo = false
-    let mediaUrl = firstStory.thumbnail || ''
-    try {
-      const content = JSON.parse(firstStory.content || '{}')
-      const firstMedia = content.mediaItems?.[0]
-      if (firstMedia?.type === 'video') {
-        isVideo = true
-        mediaUrl = firstMedia.url || ''
+
+    if (!mediaUrl) {
+      try {
+        const content = JSON.parse(firstStory.content || '{}')
+        const firstMedia = content.mediaItems?.[0]
+        if (firstMedia) {
+          isVideo = firstMedia.type === 'video'
+          mediaUrl = firstMedia.thumbnailUrl || firstMedia.url
+        }
+      } catch (error) {
+        console.error('Erreur lors du parsing du contenu:', error)
       }
-    } catch (error) {
-      console.error('Erreur lors du parsing du contenu:', error)
     }
 
     if (!mediaUrl) {
@@ -174,21 +177,11 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
 
     return (
       <div className="absolute inset-0">
-        {isVideo ? (
-          <div className="relative w-full h-full">
-            <video 
-              className="w-full h-full object-cover"
-              src={mediaUrl}
-              preload="metadata"
-              muted
-              playsInline
-              onLoadedMetadata={(e) => {
-                e.currentTarget.currentTime = e.currentTarget.duration * 0.25
-              }}
-            />
+        <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+        {isVideo && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Play className="w-8 h-8 text-white" />
           </div>
-        ) : (
-          <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
       </div>
@@ -196,7 +189,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
   }
 
   return (
-    <div className="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-gray-300 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className="relative">
       <CodeModal
         isOpen={showCode}
         onClose={() => setShowCode(false)}
@@ -212,67 +205,76 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
         }}
       />
 
-      <div className="aspect-[16/9] relative bg-gray-100 overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-          {renderPreview()}
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onPreview()
-          }}
-          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-75"
-        >
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-lg text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110">
-            <Play className="w-5 h-5" fill="currentColor" />
+      {/* Widget card */}
+      <div className="bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 h-[420px]">
+        {/* Preview */}
+        <div className="relative h-full bg-gray-100 rounded-2xl transition-all duration-300">
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-2xl transition-all duration-300">
+            {renderPreview()}
           </div>
-        </button>
-      </div>
+          
+          {/* Widget Info Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+            {/* Widget Title */}
+            <h3 className="text-white font-semibold truncate text-lg mb-4">
+              {widget.name}
+            </h3>
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium text-gray-900 truncate pr-4">
-            {widget.name}
-          </h3>
-        </div>
-        <div className="flex items-center gap-3 mb-4">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {formatLabel[widget.format.type]}
-          </span>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {widget.story_ids.length} {widget.story_ids.length === 1 ? 'story' : 'stories'}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-          <Link
-            href={`/widget/${widget.id}/edit`}
-            className="flex items-center justify-center flex-1 h-10 px-4 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg transition-all hover:text-gray-900 hover:bg-gray-100"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Link>
-          <button
-            onClick={() => setShowCode(true)}
-            className="flex items-center justify-center flex-1 h-10 px-4 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg transition-all hover:text-gray-900 hover:bg-gray-100"
-          >
-            <Code2 className="w-4 h-4 mr-2.5" />
-            Get Code
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center justify-center w-10 h-10 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg transition-all hover:text-gray-900 hover:bg-gray-100"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="flex items-center justify-center w-10 h-10 text-sm font-medium text-red-600 bg-red-50 rounded-lg transition-all hover:text-red-700 hover:bg-red-100"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            {/* Widget metadata */}
+            <div className="flex flex-col gap-2 mb-6">
+              <div className="flex items-center gap-4 text-white/70 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4" />
+                  {new Date(widget.created_at).toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  })}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" />
+                  {widget.story_ids.length} {widget.story_ids.length === 1 ? 'story' : 'stories'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onPreview}
+                className="flex items-center justify-center flex-1 h-10 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/widget/${widget.id}/edit`}
+                  className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Link>
+                <button
+                  onClick={() => setShowCode(true)}
+                  className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                >
+                  <Code2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="group flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 group-hover:text-red-300 transition-colors" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

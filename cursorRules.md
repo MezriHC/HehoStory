@@ -104,4 +104,25 @@ const Component: React.FC<ComponentProps> = ({
 
 
 
-Mettre en place l’option d’alignement des widgets (à gauche, milieu, à droite) Mettre en place une animation de transition entre les story  Mettre en place une animation de fermeture Corriger le problème de la couleur de la bordure et la connecter la base de donnée Connecter le nom du compte et la photo à la base de donnée Corriger le problème du bouton mute qui influence la story. Corriger el problème du bouton fermer qui ne fonctionne pas. Ajouter le système de rangement dans des dossiers Ajouter le nom de la story sous chaque story dans le widget, et l’adapter en fonction du style. Mettre une limite de caractère au niveau du nom de la story (afficher… si on les dépasse) Ajouter la traduction. Supprimer le preview popup au niveau de l’étape de creation garder juste le preview inline, supprimer le bouton preview au niveau de cette étape également Quand j’essaye d’uploader une vidéo ça mets super longtemps à s’enregistrer et à la fin j’ai : Failed to save story. Please try again. Il faut corriger ce problème.
+## Tâches à réaliser
+
+### 1. Interface utilisateur
+- Ajouter l'option d'alignement des widgets (gauche/centre/droite)
+- Ajouter le nom de la story sous chaque widget
+  - Adapter le style selon le thème
+  - Limiter le nombre de caractères (ajouter "..." si dépassement)
+
+### 2. Animations
+- Implémenter une animation de transition entre les stories
+- Ajouter une animation de fermeture
+
+### 3. Corrections de bugs
+- Corriger la couleur de la bordure et la connexion à la base de données
+- Optimiser le temps d'upload des vidéos
+  - Investiguer l'erreur "Failed to save story"
+  - Améliorer la gestion des fichiers volumineux
+
+### 4. Fonctionnalités
+- Connecter le nom du compte et la photo de profil à la base de données
+- Implémenter le système de rangement par dossiers
+- Intégrer la traduction (internationalisation)
