@@ -9,6 +9,26 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      folders: {
+        Row: {
+          id: string
+          name: string
+          author_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          author_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          author_id?: string
+          created_at?: string
+        }
+      }
       stories: {
         Row: {
           id: string
@@ -22,7 +42,7 @@ export interface Database {
           author_id: string
           tags: string[]
           updated_at: string
-          widget_border_color: string
+          folder_id: string | null
         }
         Insert: {
           id?: string
@@ -36,7 +56,7 @@ export interface Database {
           author_id: string
           tags?: string[]
           updated_at?: string
-          widget_border_color?: string
+          folder_id?: string | null
         }
         Update: {
           id?: string
@@ -50,7 +70,7 @@ export interface Database {
           author_id?: string
           tags?: string[]
           updated_at?: string
-          widget_border_color?: string
+          folder_id?: string | null
         }
       }
       widgets: {
@@ -116,4 +136,24 @@ export interface Database {
       }
     }
   }
+}
+
+export interface Folder {
+  id: string
+  name: string
+  author_id: string
+  created_at: string
+}
+
+export interface Widget {
+  id: string
+  name: string
+  format: WidgetFormat
+  story_ids: string[]
+  stories?: Story[]
+  created_at: string
+  settings?: any
+  published: boolean
+  author_id: string
+  folder_id: string | null
 } 

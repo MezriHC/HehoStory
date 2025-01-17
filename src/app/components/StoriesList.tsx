@@ -17,14 +17,22 @@ export interface Story {
   created_at: string
   profile_image: string | null
   profile_name: string | null
+  folder_id: string | null
 }
 
 interface StoriesListProps {
   stories: Story[]
   onDelete: (id: string) => void
+  selectedStories?: string[]
+  onStorySelect?: (id: string) => void
 }
 
-export default function StoriesList({ stories, onDelete }: StoriesListProps) {
+export default function StoriesList({ 
+  stories, 
+  onDelete,
+  selectedStories = [],
+  onStorySelect
+}: StoriesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
@@ -136,16 +144,18 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Search bar */}
-      <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search stories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
-        />
+      {/* Search bar and selection info */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search stories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+          />
+        </div>
       </div>
 
       {/* Stories grid */}
@@ -164,7 +174,21 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
             />
 
             {/* Story card */}
-            <div className="bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1">
+            <div 
+              className={`bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 relative ${
+                selectedStories.includes(story.id) ? 'ring-2 ring-gray-900' : ''
+              }`}
+              onClick={() => onStorySelect?.(story.id)}
+            >
+              {/* Selection indicator */}
+              {selectedStories.includes(story.id) && (
+                <div className="absolute top-3 right-3 z-10 w-6 h-6 bg-gray-900 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              )}
+
               {/* Thumbnail */}
               <div className="relative aspect-[9/16] bg-gray-100">
                 {story.thumbnail ? (

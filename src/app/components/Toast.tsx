@@ -1,45 +1,104 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+
+type ToastType = 'success' | 'error' | 'info'
 
 interface ToastProps {
   message: string
-  show: boolean
-  onHide: () => void
+  visible: boolean
+  onClose: () => void
+  type?: ToastType
   duration?: number
 }
 
-export default function Toast({ message, show, onHide, duration = 1500 }: ToastProps) {
+export default function Toast({ 
+  message, 
+  visible, 
+  onClose, 
+  type = 'success',
+  duration = 3000 
+}: ToastProps) {
+  const [isLeaving, setIsLeaving] = useState(false)
+
   useEffect(() => {
-    if (show) {
+    if (visible) {
+      setIsLeaving(false)
       const timer = setTimeout(() => {
-        onHide()
+        handleClose()
       }, duration)
       return () => clearTimeout(timer)
     }
-  }, [show, duration, onHide])
+  }, [visible, duration])
 
-  if (!show) return null
+  const handleClose = () => {
+    setIsLeaving(true)
+    setTimeout(() => {
+      onClose()
+      setIsLeaving(false)
+    }, 150) // Durée de l'animation de sortie
+  }
+
+  if (!visible) return null
+
+  const icons = {
+    success: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+    error: <AlertCircle className="w-5 h-5 text-red-500" />,
+    info: <Info className="w-5 h-5 text-blue-500" />
+  }
+
+  const backgrounds = {
+    success: 'bg-emerald-50 border-emerald-200',
+    error: 'bg-red-50 border-red-200',
+    info: 'bg-blue-50 border-blue-200'
+  }
+
+  const textColors = {
+    success: 'text-emerald-800',
+    error: 'text-red-800',
+    info: 'text-blue-800'
+  }
 
   return (
-    <div 
-      className={`
-        fixed bottom-4 right-4 
-        bg-gray-900 text-white 
-        px-4 py-3 
-        rounded-lg shadow-lg 
-        flex items-center 
-        transform
-        transition-all duration-500 ease-out
-        translate-y-[200%] opacity-0
-        animate-in fade-in slide-in-from-bottom-full 
-        data-[state=open]:translate-y-0 data-[state=open]:opacity-100
-        hover:translate-y-[-4px]
-      `}
-      data-state={show ? 'open' : 'closed'}
-    >
-      <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
-      {message}
+    <div className="fixed bottom-4 right-4 z-[100]">
+      <div 
+        className={`
+          ${backgrounds[type]}
+          ${textColors[type]}
+          px-4 py-3 
+          rounded-lg 
+          shadow-sm
+          border
+          flex items-center gap-3
+          transform
+          ${isLeaving 
+            ? 'animate-out fade-out slide-out-to-right duration-150' 
+            : 'animate-in fade-in slide-in-from-right-5 duration-300'
+          }
+        `}
+      >
+        <div className={`
+          transform transition-transform duration-200 
+          ${isLeaving ? 'scale-95' : 'scale-100'}
+        `}>
+          {icons[type]}
+        </div>
+        <span className="text-sm font-medium">{message}</span>
+        <button 
+          onClick={handleClose} 
+          className={`
+            ${textColors[type]} 
+            opacity-60 
+            hover:opacity-100 
+            transition-all
+            duration-200
+            hover:scale-110
+          `}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   )
 } 

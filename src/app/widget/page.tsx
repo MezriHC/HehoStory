@@ -15,6 +15,9 @@ import React from 'react'
 import Loader from '@/app/components/Loader'
 import { useAuth } from '@/hooks/useAuth'
 import DeleteConfirmation from '../components/DeleteConfirmation'
+import FolderPills from '../components/FolderPills'
+import Toast from '../components/Toast'
+import { Folder } from '@/types/database.types'
 
 export interface Widget {
   id: string
@@ -26,6 +29,7 @@ export interface Widget {
   settings?: any
   published: boolean
   author_id: string
+  folder_id: string | null
 }
 
 function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
@@ -53,7 +57,19 @@ function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
   )
 }
 
-function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete: (id: string) => void; onPreview: () => void }): React.ReactElement {
+function WidgetCard({ 
+  widget, 
+  onDelete, 
+  onPreview,
+  selected = false,
+  onSelect
+}: { 
+  widget: Widget; 
+  onDelete: (id: string) => void; 
+  onPreview: () => void;
+  selected?: boolean;
+  onSelect?: () => void;
+}): React.ReactElement {
   const [showMenu, setShowMenu] = useState(false)
   const [showCode, setShowCode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -206,7 +222,21 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
       />
 
       {/* Widget card */}
-      <div className="bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 h-[420px]">
+      <div 
+        className={`bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 h-[420px] ${
+          selected ? 'ring-2 ring-gray-900' : ''
+        }`}
+        onClick={onSelect}
+      >
+        {/* Selection indicator */}
+        {selected && (
+          <div className="absolute top-3 right-3 z-10 w-6 h-6 bg-gray-900 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        )}
+
         {/* Preview */}
         <div className="relative h-full bg-gray-100 rounded-2xl transition-all duration-300">
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-2xl transition-all duration-300">
@@ -290,6 +320,10 @@ export default function WidgetsPage() {
   const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null)
   const [previewWidget, setPreviewWidget] = useState<Widget | null>(null)
   const [previewStories, setPreviewStories] = useState<Story[]>([])
+  const [selectedWidgets, setSelectedWidgets] = useState<string[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [currentFolder, setCurrentFolder] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false })
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -302,7 +336,7 @@ export default function WidgetsPage() {
       if (!userId) return
 
       try {
-        // Charger les widgets
+        // Load widgets
         const { data: widgetsData, error: widgetsError } = await authClient
           .from('widgets')
           .select('*')
@@ -311,8 +345,17 @@ export default function WidgetsPage() {
 
         if (widgetsError) throw widgetsError
         setWidgets(widgetsData || [])
+
+        // Load folders
+        const { data: foldersData, error: foldersError } = await authClient
+          .from('folders')
+          .select('*')
+          .eq('author_id', userId)
+
+        if (foldersError) throw foldersError
+        setFolders(foldersData || [])
       } catch (error) {
-        console.error('Error loading widgets:', error)
+        console.error('Error loading data:', error)
       } finally {
         setIsLoading(false)
       }
@@ -320,6 +363,108 @@ export default function WidgetsPage() {
 
     loadData()
   }, [userId, authClient])
+
+  const handleFolderSelect = (folderId: string | null) => {
+    setCurrentFolder(folderId)
+    setSelectedWidgets([])
+  }
+
+  const handleCreateFolder = async (name: string) => {
+    try {
+      const { data, error } = await authClient
+        .from('folders')
+        .insert([{ name, author_id: userId }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setFolders(prev => [...prev, data])
+      setToast({ message: `Dossier "${name}" créé avec succès`, visible: true })
+
+      // If widgets are selected, move them to the new folder
+      if (selectedWidgets.length > 0) {
+        await handleMoveToFolder(data.id)
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error)
+      alert('Failed to create folder. Please try again.')
+    }
+  }
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      // First, reset folder_id for all widgets in this folder
+      const { error: updateError } = await authClient
+        .from('widgets')
+        .update({ folder_id: null })
+        .eq('folder_id', folderId)
+
+      if (updateError) throw updateError
+
+      // Then delete the folder
+      const { error: deleteError } = await authClient
+        .from('folders')
+        .delete()
+        .eq('id', folderId)
+
+      if (deleteError) throw deleteError
+
+      setFolders(prev => prev.filter(f => f.id !== folderId))
+      setCurrentFolder(null)
+      setToast({ message: 'Dossier supprimé avec succès', visible: true })
+    } catch (error) {
+      console.error('Error deleting folder:', error)
+      alert('Failed to delete folder. Please try again.')
+    }
+  }
+
+  const handleMoveToFolder = async (folderId: string | null) => {
+    try {
+      const { error } = await authClient
+        .from('widgets')
+        .update({ folder_id: folderId })
+        .in('id', selectedWidgets)
+
+      if (error) throw error
+
+      setWidgets(prev => 
+        prev.map(widget => 
+          selectedWidgets.includes(widget.id) 
+            ? { ...widget, folder_id: folderId }
+            : widget
+        )
+      )
+
+      setSelectedWidgets([])
+      const folderName = folderId 
+        ? folders.find(f => f.id === folderId)?.name 
+        : 'la racine'
+      setToast({ 
+        message: `Éléments déplacés dans ${folderName} avec succès`, 
+        visible: true 
+      })
+    } catch (error) {
+      console.error('Error moving widgets:', error)
+      alert('Failed to move widgets. Please try again.')
+    }
+  }
+
+  const handleWidgetSelect = (id: string) => {
+    setSelectedWidgets(prev => 
+      prev.includes(id) 
+        ? prev.filter(wId => wId !== id)
+        : [...prev, id]
+    )
+  }
+
+  const filteredWidgets = widgets
+    .filter(widget =>
+      widget.name.toLowerCase().includes(search.toLowerCase()) &&
+      (currentFolder === null 
+        ? !widget.folder_id 
+        : widget.folder_id === currentFolder)
+    )
 
   const handleDelete = async (id: string) => {
     setWidgetToDelete(id)
@@ -343,10 +488,6 @@ export default function WidgetsPage() {
       alert('Failed to delete widget. Please try again.')
     }
   }
-
-  const filteredWidgets = widgets.filter(widget =>
-    widget.name.toLowerCase().includes(search.toLowerCase())
-  )
 
   const handlePreview = async (widget: Widget) => {
     console.log('=== DÉBUT HANDLE PREVIEW ===')
@@ -467,6 +608,12 @@ export default function WidgetsPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white">
+      <Toast
+        message={toast.message}
+        visible={toast.visible}
+        onClose={() => setToast(prev => ({ ...prev, visible: false }))}
+      />
+
       <DeleteConfirmation 
         isOpen={widgetToDelete !== null}
         onClose={() => setWidgetToDelete(null)}
@@ -510,6 +657,16 @@ export default function WidgetsPage() {
           </div>
         </div>
 
+        <FolderPills
+          folders={folders}
+          currentFolder={currentFolder}
+          onFolderSelect={handleFolderSelect}
+          onCreateFolder={handleCreateFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onMoveToFolder={handleMoveToFolder}
+          selectedItems={selectedWidgets}
+        />
+
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -528,6 +685,8 @@ export default function WidgetsPage() {
               widget={widget}
               onDelete={handleDelete}
               onPreview={() => handlePreview(widget)}
+              selected={selectedWidgets.includes(widget.id)}
+              onSelect={() => handleWidgetSelect(widget.id)}
             />
           ))}
         </div>
