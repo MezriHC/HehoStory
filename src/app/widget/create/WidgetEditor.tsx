@@ -11,6 +11,7 @@ import StoryStyle from '@/components/StoryStyle'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 import BrowserPreview from '@/app/components/BrowserPreview'
+import VideoThumbnail from '@/components/VideoThumbnail'
 
 interface StorySelector {
   stories: Story[]
@@ -20,6 +21,17 @@ interface StorySelector {
 
 function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
   const [search, setSearch] = useState('')
+
+  const getMediaType = (story: Story) => {
+    try {
+      if (!story.content) return 'image'
+      const content = JSON.parse(story.content)
+      const firstMedia = content.mediaItems?.[0]
+      return firstMedia?.type || 'image'
+    } catch {
+      return 'image'
+    }
+  }
 
   const filteredStories = stories.filter(story =>
     story.title.toLowerCase().includes(search.toLowerCase())
@@ -55,11 +67,18 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
             <div className="aspect-[16/9] relative bg-gray-100">
               {story.thumbnail && (
                 <div className="absolute inset-0">
-                  <img
-                    src={story.thumbnail}
-                    alt={story.title}
-                    className="w-full h-full object-cover"
-                  />
+                  {getMediaType(story) === 'video' ? (
+                    <VideoThumbnail
+                      url={story.thumbnail}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={story.thumbnail}
+                      alt={story.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               )}
             </div>

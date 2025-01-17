@@ -23,6 +23,7 @@ export interface MediaItem {
   type: 'image' | 'video'
   url: string
   file: File | null
+  thumbnailUrl?: string // URL de la miniature pour les vidéos
 }
 
 interface MediaGridProps {

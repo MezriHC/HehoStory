@@ -52,41 +52,59 @@ function VideoThumbnail({ url, className }: { url: string, className?: string })
     const canvas = canvasRef.current
     if (!video || !canvas) return
 
-    const handleLoadedMetadata = () => {
-      // On cherche une frame spécifique
-      video.currentTime = 0.1 // On va chercher la frame à 100ms pour éviter la frame noire
-    }
+    // Créer une URL blob pour la vidéo
+    const videoBlob = fetch(url)
+      .then(response => response.blob())
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob)
+        video.src = blobUrl
 
-    const handleSeeked = () => {
-      const context = canvas.getContext('2d')
-      if (!context) return
+        const handleLoadedMetadata = () => {
+          // Choisir un moment aléatoire dans la première moitié de la vidéo
+          const randomTime = Math.random() * (video.duration / 2)
+          video.currentTime = randomTime
+        }
 
-      // Définir les dimensions du canvas pour correspondre à la vidéo
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
+        const handleSeeked = () => {
+          const context = canvas.getContext('2d')
+          if (!context) return
 
-      // Dessiner la frame actuelle sur le canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height)
+          // Définir les dimensions du canvas pour correspondre à la vidéo
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
 
-      // Convertir le canvas en URL de données
-      const dataUrl = canvas.toDataURL('image/jpeg')
-      setThumbnail(dataUrl)
+          // Dessiner la frame actuelle sur le canvas
+          context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-      // Nettoyer
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      video.removeEventListener('seeked', handleSeeked)
-      video.src = ''
-    }
+          try {
+            // Convertir le canvas en URL de données
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+            setThumbnail(dataUrl)
+          } catch (error) {
+            console.error('Erreur lors de la génération de la miniature:', error)
+            // En cas d'erreur, on utilise une miniature par défaut
+            setThumbnail(null)
+          }
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata)
-    video.addEventListener('seeked', handleSeeked)
-    video.src = url
-    video.load()
+          // Nettoyer
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+          video.removeEventListener('seeked', handleSeeked)
+          URL.revokeObjectURL(blobUrl)
+          video.src = ''
+        }
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata)
+        video.addEventListener('seeked', handleSeeked)
+      })
+      .catch(error => {
+        console.error('Erreur lors du chargement de la vidéo:', error)
+        setThumbnail(null)
+      })
 
     return () => {
       if (video) {
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        video.removeEventListener('seeked', handleSeeked)
+        video.removeEventListener('loadedmetadata', () => {})
+        video.removeEventListener('seeked', () => {})
         video.src = ''
       }
     }
@@ -94,13 +112,16 @@ function VideoThumbnail({ url, className }: { url: string, className?: string })
 
   return (
     <>
-      <video ref={videoRef} className="hidden" preload="metadata" />
+      <video ref={videoRef} className="hidden" preload="metadata" crossOrigin="anonymous" />
       <canvas ref={canvasRef} className="hidden" />
       {thumbnail ? (
         <img src={thumbnail} alt="" className={className} />
       ) : (
         <div className={`${className} bg-gray-200 flex items-center justify-center`}>
-          <Play className="w-8 h-8 text-gray-400" />
+          <div className="relative">
+            <Play className="w-8 h-8 text-gray-400" />
+            <div className="absolute inset-0 animate-pulse bg-gray-300/50 rounded-full" />
+          </div>
         </div>
       )}
     </>
@@ -324,7 +345,8 @@ export default function StoryStyle({
         clearInterval(progressTimerRef.current)
         progressTimerRef.current = null
       }
-      elapsedBeforePauseRef.current = Date.now() - startTimeRef.current
+      // On garde la progression actuelle
+      elapsedBeforePauseRef.current = (progress / PROGRESS_BAR_WIDTH) * STORY_DURATION
       return
     }
 
@@ -332,11 +354,8 @@ export default function StoryStyle({
       clearInterval(progressTimerRef.current)
     }
 
-    if (elapsedBeforePauseRef.current > 0) {
-      startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
-    } else {
-      startTimeRef.current = Date.now()
-    }
+    // Reprendre depuis la dernière position
+    startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
     
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current
@@ -346,10 +365,8 @@ export default function StoryStyle({
         elapsedBeforePauseRef.current = 0
         resetProgress()
         if (isPhonePreview && isLastItem) {
-          // En mode preview, on quitte la story à la fin
           onComplete?.()
         } else if (isLastItem && isLastStory) {
-          // En mode normal, on quitte si c'est la dernière frame de la dernière story
           onComplete?.()
         } else {
           goToNextFrame()
@@ -357,18 +374,18 @@ export default function StoryStyle({
       } else {
         setProgress(newProgress)
       }
-    }, 16)
+    }, 100)
 
     progressTimerRef.current = timer
     return () => clearInterval(timer)
-  }, [currentIndex, currentItem, isPaused, isMuted, goToNextFrame, resetProgress, isLastItem, isLastStory, isPhonePreview, onComplete])
+  }, [currentIndex, currentItem, isPaused, isMuted, goToNextFrame, resetProgress, isLastItem, isLastStory, isPhonePreview, onComplete, progress])
 
   if (!mounted || !currentItem) return null
 
   return (
     <div className="relative w-full max-w-[800px] mx-auto flex items-center justify-center">
       {/* Left Navigation */}
-      {!hideNavigation && (
+      {!hideNavigation && !isModal && (
         <div className={`absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
           {/* Story navigation */}
           <button
@@ -461,8 +478,21 @@ export default function StoryStyle({
                 onLoadedMetadata={(e) => {
                   const video = e.currentTarget
                   video.currentTime = 0.1 // On va chercher la frame à 100ms pour éviter la frame noire
+                  if (!isPaused) {
+                    video.play().catch(console.error)
+                  }
                 }}
                 onEnded={goToNextFrame}
+                onPause={() => {
+                  if (!isPaused) {
+                    setIsPaused(true)
+                  }
+                }}
+                onPlay={() => {
+                  if (isPaused) {
+                    setIsPaused(false)
+                  }
+                }}
               />
             ) : (
               <img
@@ -532,6 +562,13 @@ export default function StoryStyle({
             <button 
               onClick={(e) => {
                 e.stopPropagation()
+                if (currentItem?.type === 'video' && videoRef.current) {
+                  if (isPaused) {
+                    videoRef.current.play().catch(console.error)
+                  } else {
+                    videoRef.current.pause()
+                  }
+                }
                 setIsPaused(!isPaused)
               }}
               className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
@@ -553,7 +590,7 @@ export default function StoryStyle({
       </div>
 
       {/* Right Navigation */}
-      {!hideNavigation && (
+      {!hideNavigation && !isModal && (
         <div className={`absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
           {/* Frame navigation */}
           <button

@@ -92,6 +92,93 @@ async function compressImage(dataUrl: string): Promise<string> {
   });
 }
 
+// Fonction de compression vidéo
+const compressVideo = async (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Créer un élément video temporaire
+      const video = document.createElement('video')
+      video.src = URL.createObjectURL(file)
+      
+      video.onloadedmetadata = () => {
+        // Créer un canvas pour la compression
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        
+        // Définir une taille maximale tout en gardant le ratio
+        const maxWidth = 1280
+        const maxHeight = 720
+        let width = video.videoWidth
+        let height = video.videoHeight
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height)
+            height = maxHeight
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Capturer la première frame pour la miniature
+        ctx?.drawImage(video, 0, 0, width, height)
+        
+        // Convertir en Blob avec une qualité réduite
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'video/mp4',
+              lastModified: Date.now()
+            })
+            resolve(compressedFile)
+          } else {
+            reject(new Error('Échec de la compression vidéo'))
+          }
+        }, 'video/mp4', 0.8)
+      }
+      
+      video.onerror = () => {
+        reject(new Error('Erreur lors du chargement de la vidéo'))
+      }
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+// Fonction pour générer une miniature à partir d'une vidéo
+const generateVideoThumbnail = async (videoUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.src = videoUrl
+    video.crossOrigin = 'anonymous'
+    video.currentTime = 0.1 // Prendre la frame à 100ms
+
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      
+      const ctx = canvas.getContext('2d')
+      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+      
+      // Convertir en base64 avec une qualité de 0.8
+      const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8)
+      resolve(thumbnailUrl)
+    }
+
+    video.onerror = () => {
+      reject(new Error('Erreur lors de la génération de la miniature'))
+    }
+  })
+}
+
 function StoryEditor() {
   const { userId, loading: authLoading, supabase } = useAuth()
   const [title, setTitle] = useState('')
@@ -100,8 +187,9 @@ function StoryEditor() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
   const [localUrls, setLocalUrls] = useState<{ [key: string]: string }>({})
   const [isInitialized, setIsInitialized] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const profileImageInputRef = useRef<HTMLInputElement>(null)
@@ -121,32 +209,37 @@ function StoryEditor() {
     return () => setMounted(false)
   }, [])
 
-  // Effet pour bloquer le scroll quand le preview est ouvert
-  useEffect(() => {
-    if (showPreview) {
-      const scrollY = window.scrollY
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
-      document.body.style.top = `-${scrollY}px`
-      document.body.style.overflow = 'hidden'
-    } else {
-      const scrollY = document.body.style.top
-      document.body.style.position = ''
-      document.body.style.width = ''
-      document.body.style.top = ''
-      document.body.style.overflow = ''
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1)
-      }
-    }
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
 
-    return () => {
-      document.body.style.position = ''
-      document.body.style.width = ''
-      document.body.style.top = ''
-      document.body.style.overflow = ''
+    try {
+      setIsUploading(true)
+      const filePath = `${userId}/profile/${Date.now()}-${file.name}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw new Error(`Erreur d'upload: ${uploadError.message}`)
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(filePath)
+
+      setProfileImage(publicUrl)
+    } catch (error) {
+      console.error('Error uploading profile image:', error)
+      alert('Erreur lors de l\'upload de l\'image de profil')
+    } finally {
+      setIsUploading(false)
     }
-  }, [showPreview])
+  }
 
   const handleSave = async () => {
     if (!userId) {
@@ -154,72 +247,136 @@ function StoryEditor() {
       return
     }
 
+    setIsUploading(true)
     try {
-      // Process media items in smaller chunks
-      const processedMediaItems = []
-      for (const item of mediaItems) {
-        let url = item.url
-        if (item.file) {
-          const dataUrl = await getImageDataUrl(item.file)
-          // Compress if it's an image
-          if (item.type === 'image') {
-            url = await compressImage(dataUrl)
-          } else {
-            url = dataUrl
-          }
+      setUploadProgress(0)
+
+      // Vérifier si des médias sont en cours d'upload
+      if (mediaItems.length > 0) {
+        let processed = 0
+        const processedMediaItems = await Promise.all(
+          mediaItems.map(async (item) => {
+            try {
+              // Si c'est un nouveau fichier à uploader
+              if (item.file) {
+                const filePath = `${userId}/stories/${Date.now()}-${item.file.name}`
+                const { error: uploadError } = await supabase.storage
+                  .from('media')
+                  .upload(filePath, item.file, {
+                    cacheControl: '3600',
+                    upsert: false
+                  })
+
+                if (uploadError) {
+                  throw new Error(`Erreur d'upload: ${uploadError.message}`)
+                }
+
+                const { data: { publicUrl } } = supabase.storage
+                  .from('media')
+                  .getPublicUrl(filePath)
+
+                // Si c'est une vidéo, générer et sauvegarder une miniature
+                let thumbnailUrl = publicUrl
+                if (item.type === 'video') {
+                  try {
+                    // Générer la miniature
+                    const base64Thumbnail = await generateVideoThumbnail(publicUrl)
+                    
+                    // Convertir le base64 en blob
+                    const response = await fetch(base64Thumbnail)
+                    const blob = await response.blob()
+                    
+                    // Upload la miniature
+                    const thumbnailPath = `${userId}/thumbnails/${Date.now()}-${item.file.name.replace(/\.[^/.]+$/, '')}.jpg`
+                    const { error: thumbnailError } = await supabase.storage
+                      .from('media')
+                      .upload(thumbnailPath, blob, {
+                        contentType: 'image/jpeg',
+                        cacheControl: '3600',
+                        upsert: false
+                      })
+
+                    if (thumbnailError) throw thumbnailError
+
+                    const { data: { publicUrl: thumbnailPublicUrl } } = supabase.storage
+                      .from('media')
+                      .getPublicUrl(thumbnailPath)
+
+                    thumbnailUrl = thumbnailPublicUrl
+                  } catch (error) {
+                    console.error('Erreur lors de la génération de la miniature:', error)
+                    // En cas d'erreur, on garde l'URL de la vidéo comme miniature
+                  }
+                }
+
+                processed++
+                setUploadProgress((processed / mediaItems.length) * 100)
+
+                return {
+                  ...item,
+                  url: publicUrl,
+                  thumbnailUrl: thumbnailUrl, // Ajouter l'URL de la miniature
+                  file: null
+                }
+              }
+              // Si c'est un fichier existant, on garde tel quel
+              return {
+                ...item,
+                file: null
+              }
+            } catch (error) {
+              console.error('Erreur lors du traitement du média:', error)
+              throw error
+            }
+          })
+        )
+
+        // Utiliser la miniature du premier média
+        const firstMedia = processedMediaItems[0]
+        const thumbnailUrl = firstMedia.thumbnailUrl || firstMedia.url
+
+        const storyData: SaveStoryData = {
+          title: title.trim(),
+          content: JSON.stringify({ mediaItems: processedMediaItems }),
+          thumbnail: thumbnailUrl,
+          profile_name: profileName.trim() || null,
+          profile_image: profileImage || null,
+          published: false,
+          author_id: userId,
+          tags: []
         }
-        processedMediaItems.push({
-          id: item.id,
-          type: item.type,
-          url,
-          file: null
-        })
+
+        console.log('Debug - Story data:', storyData)
+
+        // Si on est en mode édition
+        if (editId) {
+          const { error } = await supabase
+            .from('stories')
+            .update(storyData)
+            .eq('id', editId)
+
+          if (error) throw error
+        } else {
+          // Créer une nouvelle story
+          const { error } = await supabase
+            .from('stories')
+            .insert([storyData])
+
+          if (error) throw error
+        }
+
+        router.push('/story')
       }
-
-      // Get and compress thumbnail
-      const firstItem = mediaItems[0]
-      let thumbnail = firstItem.url
-      if (firstItem.file) {
-        const dataUrl = firstItem.type === 'video' 
-          ? await getVideoThumbnail(firstItem.file)
-          : await getImageDataUrl(firstItem.file)
-        thumbnail = await compressImage(dataUrl)
-      }
-
-      const story = {
-        title: title.trim(),
-        content: JSON.stringify({ mediaItems: processedMediaItems }),
-        thumbnail,
-        profile_name: profileName.trim() || null,
-        profile_image: profileImage || null,
-        published: false,
-        author_id: userId,
-        tags: []
-      }
-
-      console.log('Debug - Story data:', story)
-
-      // Utiliser directement le client Supabase du hook useAuth
-      const { data, error } = await supabase
-        .from('stories')
-        .insert([story])
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
-
-      console.log('Debug - Success:', data)
-      router.push('/story')
     } catch (error) {
       console.error('Error saving story:', error)
       if (error instanceof Error) {
-        alert(error.message)
+        alert(`Erreur: ${error.message}`)
       } else {
-        alert('Failed to save story. Please try again.')
+        alert('Échec de la sauvegarde. Veuillez réessayer.')
       }
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -268,46 +425,99 @@ function StoryEditor() {
   }, [localUrls])
 
   // Event handlers
-  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const handleAddMedia = async (files: File[]) => {
+    // Limite de taille ajustée à 45MB pour tous les fichiers (marge de sécurité)
+    const MAX_FILE_SIZE = 45 * 1024 * 1024 // 45MB
+    const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+    const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
     try {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setProfileImage(e.target?.result as string)
+      for (const file of files) {
+        // Vérification du type de fichier
+        const isVideo = file.type.startsWith('video/');
+        if (isVideo && !SUPPORTED_VIDEO_TYPES.includes(file.type)) {
+          throw new Error(`Format vidéo non supporté: ${file.type}. Formats acceptés: MP4, MOV, WEBM`);
+        }
+        if (!isVideo && !SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+          throw new Error(`Format image non supporté: ${file.type}. Formats acceptés: JPEG, PNG, GIF, WEBP`);
+        }
+
+        // Vérification de la taille
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(`Le fichier ${file.name} est trop volumineux. La taille maximum est de 45MB pour respecter les limites de Supabase.`);
+        }
+
+        // Vérification supplémentaire pour les vidéos
+        if (isVideo) {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          
+          await new Promise((resolve, reject) => {
+            video.onloadedmetadata = resolve;
+            video.onerror = () => reject(new Error(`La vidéo ${file.name} semble être corrompue ou dans un format non supporté.`));
+            video.src = URL.createObjectURL(file);
+          });
+          
+          URL.revokeObjectURL(video.src);
+        }
       }
-      reader.readAsDataURL(file)
+
+      const timestamp = Date.now();
+      const processedFiles = await Promise.all(
+        files.map(async (file, index) => {
+          const isVideo = file.type.startsWith('video/');
+          const id = `${isVideo ? 'video' : 'image'}-${timestamp}-${index}`;
+          const url = URL.createObjectURL(file);
+          
+          console.log(`Ajout du média: ${file.name}, type: ${file.type}, taille: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          
+          setLocalUrls(prev => ({ ...prev, [id]: url }));
+          return {
+            id,
+            type: isVideo ? 'video' : 'image' as const,
+            url,
+            file
+          } satisfies MediaItem;
+        })
+      );
+
+      setMediaItems(prev => [...prev, ...processedFiles]);
     } catch (error) {
-      console.error('Error uploading profile image:', error)
+      console.error('Erreur lors de l\'ajout des médias:', error);
+      alert(error instanceof Error ? error.message : 'Erreur lors de l\'ajout des médias');
     }
-  }
+  };
 
-  const handleAddMedia = (files: File[]) => {
-    const timestamp = Date.now()
-    const newItems: MediaItem[] = files.map((file, index) => {
-      const id = `${file.type.startsWith('video/') ? 'video' : 'image'}-${timestamp}-${index}`
-      const url = URL.createObjectURL(file)
-      setLocalUrls(prev => ({ ...prev, [id]: url }))
-      return {
-        id,
-        type: file.type.startsWith('video/') ? 'video' : 'image',
-        url,
-        file
+  const handleRemoveMedia = async (id: string) => {
+    try {
+      const mediaItem = mediaItems.find(item => item.id === id);
+      
+      // Si l'URL est une URL Supabase, supprimer le fichier du bucket
+      if (mediaItem?.url && mediaItem.url.includes('supabase')) {
+        const filePath = mediaItem.url.split('/').slice(-2).join('/'); // Récupère "userId/nomfichier"
+        const { error: deleteError } = await supabase.storage
+          .from('media')
+          .remove([filePath]);
+
+        if (deleteError) {
+          console.error('Erreur lors de la suppression du fichier:', deleteError);
+        }
       }
-    })
-    setMediaItems(prev => [...prev, ...newItems])
-  }
 
-  const handleRemoveMedia = (id: string) => {
-    if (localUrls[id]) {
-      URL.revokeObjectURL(localUrls[id])
-      setLocalUrls(prev => {
-        const { [id]: removed, ...rest } = prev
-        return rest
-      })
+      // Nettoyer l'URL locale si elle existe
+      if (localUrls[id]) {
+        URL.revokeObjectURL(localUrls[id]);
+        setLocalUrls(prev => {
+          const { [id]: removed, ...rest } = prev;
+          return rest;
+        });
+      }
+
+      setMediaItems(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du média:', error);
+      alert('Erreur lors de la suppression du média');
     }
-    setMediaItems(prev => prev.filter(item => item.id !== id))
   }
 
   const handleReorderMedia = (items: MediaItem[]) => {
@@ -322,26 +532,6 @@ function StoryEditor() {
       </div>
     )
   }
-
-  const modal = showPreview && mounted ? createPortal(
-    <div 
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
-      onClick={() => setShowPreview(false)}
-    >
-      <StoryStyle
-        variant="preview"
-        items={mediaItems}
-        profileImage={profileImage}
-        profileName={profileName}
-        onComplete={() => setShowPreview(false)}
-        className="rounded-xl overflow-hidden"
-        isPhonePreview={true}
-        hideNavigation={true}
-        isModal={true}
-      />
-    </div>,
-    document.body
-  ) : null
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
@@ -358,14 +548,6 @@ function StoryEditor() {
           </div>
           
           <div className="flex items-center gap-4">
-            {mediaItems.length > 0 && (
-              <button
-                onClick={() => setShowPreview(true)}
-                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-              >
-                Preview Story
-              </button>
-            )}
             <button
               className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
@@ -507,7 +689,14 @@ function StoryEditor() {
         </div>
       </div>
 
-      {modal}
+      {isUploading && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-gray-200">
+          <div 
+            className="h-full bg-blue-500 transition-all duration-300"
+            style={{ width: `${uploadProgress}%` }}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -517,7 +706,7 @@ export default function CreateStoryPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [profileName, setProfileName] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
 
@@ -533,7 +722,7 @@ export default function CreateStoryPage() {
       return
     }
 
-    setIsLoading(true)
+    setIsUploading(true)
     try {
       const storyData: SaveStoryData = {
         title: title.trim(),
@@ -556,7 +745,7 @@ export default function CreateStoryPage() {
     } catch (error) {
       console.error('Error saving story:', error)
     } finally {
-      setIsLoading(false)
+      setIsUploading(false)
     }
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye } from 'lucide-react'
+import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, Pencil, Image as ImageIcon, Play } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -15,6 +15,7 @@ import React from 'react'
 import Loader from '@/app/components/Loader'
 import { useAuth } from '@/hooks/useAuth'
 import DeleteConfirmation from '../components/DeleteConfirmation'
+import VideoThumbnail from '@/components/VideoThumbnail'
 
 export interface Widget {
   id: string
@@ -154,14 +155,31 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
       return <WidgetFormatIcon format={widget.format} />
     }
 
-    if (!firstStory.thumbnail) {
-      console.log('Story has no thumbnail:', firstStory)
+    // Vérifier si le contenu est une vidéo
+    let isVideo = false
+    let mediaUrl = firstStory.thumbnail || ''
+    try {
+      const content = JSON.parse(firstStory.content || '{}')
+      const firstMedia = content.mediaItems?.[0]
+      if (firstMedia?.type === 'video') {
+        isVideo = true
+        mediaUrl = firstMedia.url || ''
+      }
+    } catch (error) {
+      console.error('Erreur lors du parsing du contenu:', error)
+    }
+
+    if (!mediaUrl) {
       return <WidgetFormatIcon format={widget.format} />
     }
 
     return (
       <div className="absolute inset-0">
-        <img src={firstStory.thumbnail} alt="" className="w-full h-full object-cover" />
+        {isVideo ? (
+          <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
+        ) : (
+          <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
       </div>
     )

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StoryStyle from '@/components/StoryStyle'
 import DeleteConfirmation from './DeleteConfirmation'
+import VideoThumbnail from '@/components/VideoThumbnail'
 
 export interface Story {
   id: string
@@ -56,6 +57,24 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
       return content.mediaItems || []
     } catch {
       return []
+    }
+  }
+
+  const getThumbnail = (story: Story) => {
+    try {
+      if (!story.content) return null
+      const content = JSON.parse(story.content)
+      const mediaItems = content.mediaItems || []
+      if (mediaItems.length === 0) return null
+      
+      // Utiliser le premier média
+      const firstMedia = mediaItems[0]
+      return {
+        url: firstMedia.thumbnailUrl || firstMedia.url,
+        type: firstMedia.type
+      }
+    } catch {
+      return null
     }
   }
 
@@ -141,7 +160,7 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
               <div className="relative aspect-[16/9] bg-gray-100 group/thumbnail">
                 {story.thumbnail ? (
                   <img
-                    src={story.thumbnail}
+                    src={getThumbnail(story)?.url || story.thumbnail}
                     alt={story.title}
                     className="absolute inset-0 w-full h-full object-cover"
                   />
