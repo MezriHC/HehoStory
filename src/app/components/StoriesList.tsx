@@ -6,7 +6,6 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StoryStyle from '@/components/StoryStyle'
 import DeleteConfirmation from './DeleteConfirmation'
-import VideoThumbnail from '@/components/VideoThumbnail'
 
 export interface Story {
   id: string
@@ -81,14 +80,24 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
   const modal = selectedStory && mounted ? createPortal(
     <div 
       className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
-      onClick={() => setSelectedStory(null)}
+      onClick={(e) => {
+        console.log('🎯 Click sur le backdrop du modal')
+        // Ne ferme que si on clique sur le fond
+        if (e.target === e.currentTarget) {
+          console.log('🎯 Fermeture via le backdrop')
+          setSelectedStory(null)
+        }
+      }}
     >
       <StoryStyle
         variant="preview"
         items={getMediaItems(selectedStory)}
         profileImage={selectedStory.profile_image || undefined}
         profileName={selectedStory.profile_name || undefined}
-        onComplete={() => setSelectedStory(null)}
+        onComplete={() => {
+          console.log('✨ onComplete appelé dans StoriesList')
+          setSelectedStory(null)
+        }}
         className="rounded-xl overflow-hidden"
         isPhonePreview={true}
         isModal={true}
@@ -159,11 +168,28 @@ export default function StoriesList({ stories, onDelete }: StoriesListProps) {
               {/* Thumbnail */}
               <div className="relative aspect-[16/9] bg-gray-100 group/thumbnail">
                 {story.thumbnail ? (
-                  <img
-                    src={getThumbnail(story)?.url || story.thumbnail}
-                    alt={story.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  <>
+                    {getThumbnail(story)?.type === 'video' ? (
+                      <div className="absolute inset-0">
+                        <video 
+                          className="w-full h-full object-cover"
+                          src={getThumbnail(story)?.url}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          onLoadedMetadata={(e) => {
+                            e.currentTarget.currentTime = e.currentTarget.duration * 0.25
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={getThumbnail(story)?.url || story.thumbnail}
+                        alt={story.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <ImageIcon className="w-8 h-8 text-gray-400" />

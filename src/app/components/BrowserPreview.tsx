@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WidgetFormat, WidgetSize } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
-import StoryStyle, { StoryCarousel } from '@/components/StoryStyle'
+import StoryStyle, { StoryCarousel, StoryViewer } from '@/components/StoryStyle'
 import { ShoppingCart, Heart, Share2, X, Store, Package, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
 
@@ -44,6 +44,19 @@ function ProductSkeleton({
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = widget.stories || stories || []
+
+  // Définir les classes d'alignement pour le conteneur
+  const getContainerAlignmentClasses = () => {
+    switch (widget.format.alignment) {
+      case 'left':
+        return 'items-start'
+      case 'right':
+        return 'items-end'
+      case 'center':
+      default:
+        return 'items-center'
+    }
+  }
 
   console.log('ProductSkeleton rendering:', {
     widget,
@@ -120,13 +133,17 @@ function ProductSkeleton({
 
             {/* Widget Preview */}
             {isInlineWidget && displayStories.length > 0 && (
-              <div className="mb-8">
-                <StoryCarousel
-                  stories={displayStories}
-                  variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
-                  size={convertWidgetSizeToStorySize(widget.format.size)}
-                  onStorySelect={onStorySelect}
-                />
+              <div className="mb-8 relative w-full overflow-hidden">
+                <div className={`flex flex-col ${getContainerAlignmentClasses()}`}>
+                  <StoryCarousel
+                    stories={displayStories}
+                    variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
+                    size={convertWidgetSizeToStorySize(widget.format.size)}
+                    onStorySelect={onStorySelect}
+                    alignment={widget.format.alignment}
+                    className="w-full"
+                  />
+                </div>
               </div>
             )}
 
@@ -191,6 +208,19 @@ function HomeSkeleton({
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = widget.stories || stories || []
+
+  // Définir les classes d'alignement pour le conteneur
+  const getContainerAlignmentClasses = () => {
+    switch (widget.format.alignment) {
+      case 'left':
+        return 'items-start'
+      case 'right':
+        return 'items-end'
+      case 'center':
+      default:
+        return 'items-center'
+    }
+  }
 
   console.log('HomeSkeleton rendering:', {
     widget,
@@ -268,13 +298,17 @@ function HomeSkeleton({
       {/* Widget Preview Section */}
       {isInlineWidget && displayStories.length > 0 && (
         <div className="bg-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <StoryCarousel
-              stories={displayStories}
-              variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
-              size={convertWidgetSizeToStorySize(widget.format.size)}
-              onStorySelect={onStorySelect}
-            />
+          <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative overflow-hidden`}>
+            <div className={`flex flex-col ${getContainerAlignmentClasses()}`}>
+              <StoryCarousel
+                stories={displayStories}
+                variant={widget.format.type === 'bubble' ? 'bubble' : widget.format.type === 'card' ? 'card' : 'square'}
+                size={convertWidgetSizeToStorySize(widget.format.size)}
+                onStorySelect={onStorySelect}
+                alignment={widget.format.alignment}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -335,8 +369,7 @@ function HomeSkeleton({
 
 export default function BrowserPreview({ isOpen, onClose, widget, stories }: BrowserPreviewProps) {
   const [mounted, setMounted] = useState(false)
-  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
-  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'home' | 'product'>('home')
   const displayStories = (widget?.stories || stories || [])
 
@@ -344,70 +377,38 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (selectedStory) {
-      const index = displayStories.findIndex(s => s.id === selectedStory.id)
-      setSelectedStoryIndex(index)
-    } else {
-      setSelectedStoryIndex(-1)
-    }
-  }, [selectedStory, displayStories])
-
   const handleStorySelect = (story: Story | null) => {
-    console.log('Story sélectionnée:', story)
-    setSelectedStory(story)
-  }
-
-  const handleClose = () => {
-    console.log('Fermeture du preview')
-    if (selectedStory) {
-      setSelectedStory(null)
-    } else {
-      onClose()
-    }
-  }
-
-  const handleNextStory = () => {
-    if (selectedStoryIndex < displayStories.length - 1) {
-      setSelectedStory(displayStories[selectedStoryIndex + 1])
-    } else {
-      setSelectedStory(null)
-    }
-  }
-
-  const handlePrevStory = () => {
-    if (selectedStoryIndex > 0) {
-      setSelectedStory(displayStories[selectedStoryIndex - 1])
-    } else {
-      setSelectedStory(null)
-    }
+    console.log('📱 BrowserPreview - handleStorySelect:', { 
+      oldId: selectedStoryId,
+      newId: story?.id,
+      story 
+    })
+    setSelectedStoryId(story?.id || null)
   }
 
   if (!mounted || !isOpen) return null
 
-  const modal = (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <div 
-        className={`absolute inset-0 transition-colors duration-200 ${
-          selectedStory ? 'bg-black/80' : 'bg-black/70'
-        } backdrop-blur-sm`}
-        onClick={handleClose}
-      />
-      
+  // Créer le contenu du modal
+  const browserContent = (
+    <>
       {/* Browser Window */}
       <div className="absolute inset-4 lg:inset-12">
-        <div 
-          className="relative w-full h-full bg-white rounded-2xl shadow-2xl overflow-hidden"
-          onClick={e => e.stopPropagation()}
-        >
+        <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Browser Chrome */}
           <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
             <div className="flex items-center">
               {/* Window Controls */}
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Si une story est ouverte, la fermer d'abord
+                    if (selectedStoryId) {
+                      setSelectedStoryId(null)
+                    } else {
+                      onClose()
+                    }
+                  }}
                   className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
                 />
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
@@ -455,7 +456,7 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
               <ProductSkeleton 
                 widget={widget} 
                 stories={displayStories}
-                selectedStory={selectedStory}
+                selectedStory={selectedStoryId ? displayStories.find(s => s.id === selectedStoryId) ?? null : null}
                 onStorySelect={handleStorySelect}
                 onClose={onClose}
               />
@@ -463,45 +464,47 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories }: Bro
               <HomeSkeleton 
                 widget={widget} 
                 stories={displayStories}
-                selectedStory={selectedStory}
+                selectedStory={selectedStoryId ? displayStories.find(s => s.id === selectedStoryId) ?? null : null}
                 onStorySelect={handleStorySelect}
                 onClose={onClose}
               />
             )}
           </div>
-
-          {/* Story Preview */}
-          {selectedStory && (
-            <div 
-              className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center"
-              onClick={() => setSelectedStory(null)}
-            >
-              <div 
-                className="relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="w-full h-full flex items-center justify-center">
-                  <StoryStyle
-                    variant="preview"
-                    story={selectedStory}
-                    items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
-                    profileImage={selectedStory.profile_image || undefined}
-                    profileName={selectedStory.profile_name || undefined}
-                    onComplete={handleNextStory}
-                    onNextStory={handleNextStory}
-                    onPrevStory={handlePrevStory}
-                    isFirstStory={selectedStoryIndex === 0}
-                    isLastStory={selectedStoryIndex === displayStories.length - 1}
-                    className="rounded-xl overflow-hidden"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+    </>
   )
 
+  // Créer le modal complet avec le backdrop
+  const modal = (
+    <>
+      <div className="fixed inset-0 z-50">
+        <div 
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-colors duration-200"
+          onClick={(e) => {
+            if (!selectedStoryId) {
+              onClose()
+            }
+            e.stopPropagation()
+          }}
+        />
+        {browserContent}
+      </div>
+
+      {/* Story Viewer - Maintenant en dehors du browser preview */}
+      {selectedStoryId && displayStories.length > 0 && (
+        <StoryViewer
+          stories={displayStories}
+          selectedStoryId={selectedStoryId}
+          onClose={() => {
+            console.log('🔄 BrowserPreview - StoryViewer onClose')
+            setSelectedStoryId(null)
+          }}
+        />
+      )}
+    </>
+  )
+
+  // Un seul portail pour tout le contenu
   return createPortal(modal, document.body)
 } 

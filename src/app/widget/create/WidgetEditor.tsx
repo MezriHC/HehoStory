@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search, Play } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -11,7 +11,6 @@ import StoryStyle from '@/components/StoryStyle'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 import BrowserPreview from '@/app/components/BrowserPreview'
-import VideoThumbnail from '@/components/VideoThumbnail'
 
 interface StorySelector {
   stories: Story[]
@@ -68,10 +67,18 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
               {story.thumbnail && (
                 <div className="absolute inset-0">
                   {getMediaType(story) === 'video' ? (
-                    <VideoThumbnail
-                      url={story.thumbnail}
-                      className="w-full h-full object-cover"
-                    />
+                    <div className="relative w-full h-full">
+                      <video 
+                        className="w-full h-full object-cover"
+                        src={story.thumbnail}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
+                        }}
+                      />
+                    </div>
                   ) : (
                     <img
                       src={story.thumbnail}
@@ -207,7 +214,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const [format, setFormat] = useState<WidgetFormat | null>(
     initialWidget ? 
     (typeof initialWidget.format === 'string' ? JSON.parse(initialWidget.format) : initialWidget.format) 
-    : null
+    : { type: 'bubble', size: 'S', alignment: 'center' }
   )
   const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.story_ids || [])
   const [name, setName] = useState(initialWidget?.name || '')
@@ -323,7 +330,8 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
         name: name.trim(),
         format: {
           type: format?.type || 'bubble',
-          size: format?.size || 'S'
+          size: format?.size || 'S',
+          alignment: format?.alignment || 'center'
         },
         story_ids: selectedStories,
         settings: initialWidget?.settings || {},
@@ -515,7 +523,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
                                 key={story.id}
                                 story={story}
                                 index={index}
-                                format={format || { type: 'bubble', size: 'S' }}
+                                format={format || { type: 'bubble', size: 'S', alignment: 'center' }}
                                 onRemove={(id) => {
                                   setSelectedStories(prev => prev.filter(sid => sid !== id))
                                 }}

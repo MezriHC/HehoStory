@@ -36,6 +36,7 @@ interface StoryCarouselProps {
   size: 'sm' | 'md' | 'lg'
   onStorySelect: (story: Story) => void
   className?: string
+  alignment?: 'left' | 'center' | 'right'
 }
 
 const STORY_DURATION = 5000 // 5 seconds for images
@@ -193,60 +194,113 @@ export default function StoryStyle({
     const mediaType = story?.content ? JSON.parse(story.content).mediaItems[0]?.type : null
     const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size][variant]} ${className} relative cursor-pointer group flex-shrink-0`
 
+    // Déterminer la largeur maximale en fonction du variant et de la taille
+    const getMaxWidth = () => {
+      if (variant === 'bubble') {
+        return size === 'sm' ? 'max-w-[70px]' : size === 'md' ? 'max-w-[90px]' : 'max-w-[120px]'
+      } else if (variant === 'card') {
+        return size === 'sm' ? 'max-w-[100px]' : size === 'md' ? 'max-w-[140px]' : 'max-w-[180px]'
+      } else { // square
+        return size === 'sm' ? 'max-w-14' : size === 'md' ? 'max-w-16' : 'max-w-24'
+      }
+    }
+
     return (
-      <div 
-        className={containerStyle}
-        onClick={onClick}
-      >
-        {variant === 'bubble' ? (
-          <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
-            {mediaUrl ? (
-              <>
-                {mediaType === 'video' ? (
-                  <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
-                ) : (
-                  <img 
-                    src={mediaUrl} 
-                    alt="" 
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/10 rounded-full">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
+      <div className="flex flex-col items-center gap-3">
+        <div 
+          className={containerStyle}
+          onClick={onClick}
+        >
+          {variant === 'bubble' ? (
+            <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
+              {mediaUrl ? (
+                <>
+                  {mediaType === 'video' ? (
+                    <div className="w-full h-full">
+                      <video 
+                        className="w-full h-full object-cover"
+                        src={mediaUrl}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <img 
+                      src={mediaUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/10">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
+                    </div>
                   </div>
+                </>
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
                 </div>
-              </>
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-full h-full rounded-[inherit] overflow-hidden">
-            {mediaUrl ? (
-              <>
-                {mediaType === 'video' ? (
-                  <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
-                ) : (
-                  <img 
-                    src={mediaUrl} 
-                    alt="" 
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/10">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
+              )}
+            </div>
+          ) : (
+            <div className="w-full h-full rounded-[inherit] overflow-hidden relative">
+              {mediaUrl ? (
+                <>
+                  {mediaType === 'video' ? (
+                    <div className="w-full h-full">
+                      <video 
+                        className="w-full h-full object-cover"
+                        src={mediaUrl}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        onLoadedMetadata={(e) => {
+                          e.currentTarget.currentTime = e.currentTarget.duration * 0.25
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <img 
+                      src={mediaUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/10">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
+                    </div>
                   </div>
+                  {/* Gradient et texte pour les cartes */}
+                  {variant === 'card' && story?.profile_name && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-2">
+                      <div className={`text-center truncate font-medium text-white ${
+                        size === 'sm' ? 'text-xs' : 'text-sm'
+                      }`}>
+                        {story.profile_name}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
                 </div>
-              </>
-            ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
-              </div>
-            )}
+              )}
+            </div>
+          )}
+        </div>
+        {/* Afficher le texte en dessous seulement pour les bubbles et squares */}
+        {story?.profile_name && variant !== 'card' && (
+          <div className={`text-center truncate font-medium ${getMaxWidth()} ${
+            size === 'sm' ? 'text-xs' : 'text-sm'
+          }`}>
+            {story.profile_name}
           </div>
         )}
       </div>
@@ -339,31 +393,27 @@ export default function StoryStyle({
       return
     }
 
-    // Gestion du timer pour les images
+    // Nettoyage de l'ancien timer
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current)
+      progressTimerRef.current = null
+    }
+
+    // Si en pause, on garde juste la progression actuelle
     if (isPaused) {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current)
-        progressTimerRef.current = null
-      }
-      // On garde la progression actuelle
-      elapsedBeforePauseRef.current = (progress / PROGRESS_BAR_WIDTH) * STORY_DURATION
       return
     }
 
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current)
-    }
-
-    // Reprendre depuis la dernière position
-    startTimeRef.current = Date.now() - elapsedBeforePauseRef.current
+    // Démarrer un nouveau timer
+    startTimeRef.current = Date.now() - (progress * STORY_DURATION / PROGRESS_BAR_WIDTH)
     
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current
-      const newProgress = (elapsed / STORY_DURATION) * PROGRESS_BAR_WIDTH
+      const newProgress = Math.min((elapsed / STORY_DURATION) * PROGRESS_BAR_WIDTH, PROGRESS_BAR_WIDTH)
+      setProgress(newProgress)
 
       if (newProgress >= PROGRESS_BAR_WIDTH) {
-        elapsedBeforePauseRef.current = 0
-        resetProgress()
+        clearInterval(timer)
         if (isPhonePreview && isLastItem) {
           onComplete?.()
         } else if (isLastItem && isLastStory) {
@@ -371,14 +421,16 @@ export default function StoryStyle({
         } else {
           goToNextFrame()
         }
-      } else {
-        setProgress(newProgress)
       }
-    }, 100)
+    }, 16) // 60fps pour une animation plus fluide
 
     progressTimerRef.current = timer
-    return () => clearInterval(timer)
-  }, [currentIndex, currentItem, isPaused, isMuted, goToNextFrame, resetProgress, isLastItem, isLastStory, isPhonePreview, onComplete, progress])
+    return () => {
+      if (timer) {
+        clearInterval(timer)
+      }
+    }
+  }, [currentItem, isPaused, isMuted, progress, isLastItem, isLastStory, isPhonePreview, onComplete, goToNextFrame])
 
   if (!mounted || !currentItem) return null
 
@@ -477,7 +529,7 @@ export default function StoryStyle({
                 }}
                 onLoadedMetadata={(e) => {
                   const video = e.currentTarget
-                  video.currentTime = 0.1 // On va chercher la frame à 100ms pour éviter la frame noire
+                  video.currentTime = 0.1
                   if (!isPaused) {
                     video.play().catch(console.error)
                   }
@@ -521,37 +573,14 @@ export default function StoryStyle({
             )}
           </div>
 
-          {/* Controls */}
-          <div className="absolute inset-0 flex">
-            <div
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (isPhonePreview && currentIndex === 0) {
-                  onComplete?.()
-                } else {
-                  goToPrevFrame()
-                }
-              }}
-            />
-            <div
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (isPhonePreview && isLastItem) {
-                  onComplete?.()
-                } else {
-                  goToNextFrame()
-                }
-              }}
-            />
-          </div>
-
           {/* Controls - Top right */}
-          <div className="absolute top-6 right-4 flex flex-col gap-4 z-20">
+          <div className="absolute top-6 right-4 flex flex-col gap-4 z-50">
             <button 
               onClick={(e) => {
+                console.log('🔴 Bouton Close cliqué')
+                e.preventDefault()
                 e.stopPropagation()
+                console.log('🔴 Appel de onComplete depuis le bouton Close')
                 onComplete?.()
               }}
               className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
@@ -561,6 +590,8 @@ export default function StoryStyle({
 
             <button 
               onClick={(e) => {
+                console.log('⏯️ Bouton Play/Pause cliqué')
+                e.preventDefault()
                 e.stopPropagation()
                 if (currentItem?.type === 'video' && videoRef.current) {
                   if (isPaused) {
@@ -578,6 +609,8 @@ export default function StoryStyle({
             
             <button 
               onClick={(e) => {
+                console.log('🔊 Bouton Mute cliqué')
+                e.preventDefault()
                 e.stopPropagation()
                 setIsMuted(!isMuted)
               }}
@@ -586,6 +619,44 @@ export default function StoryStyle({
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
           </div>
+
+          {/* Navigation Controls */}
+          {!isPhonePreview && (
+            <>
+              <div 
+                className="absolute left-0 top-0 bottom-0 w-1/3 z-30"
+                onClick={(e) => {
+                  console.log('⬅️ Zone gauche cliquée')
+                  e.preventDefault()
+                  e.stopPropagation()
+                  goToPrevFrame()
+                }}
+              />
+              <div 
+                className="absolute right-0 top-0 bottom-0 w-1/3 z-30"
+                onClick={(e) => {
+                  console.log('➡️ Zone droite cliquée')
+                  e.preventDefault()
+                  e.stopPropagation()
+                  goToNextFrame()
+                }}
+              />
+            </>
+          )}
+
+          {/* Phone Preview Click Handler */}
+          {isPhonePreview && (
+            <div 
+              className="absolute inset-0 z-30"
+              onClick={(e) => {
+                console.log('📱 Zone preview cliquée')
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('📱 Appel de onComplete depuis la zone preview')
+                onComplete?.()
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -633,9 +704,8 @@ export default function StoryStyle({
   )
 }
 
-export function StoryCarousel({ stories, variant, size, onStorySelect, className = '' }: StoryCarouselProps) {
+export function StoryCarousel({ stories, variant, size, onStorySelect, className = '', alignment = 'center' }: StoryCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [showControls, setShowControls] = useState(false)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
 
@@ -643,40 +713,61 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
     const container = containerRef.current
     if (container) {
       const hasOverflow = container.scrollWidth > container.clientWidth
-      setShowControls(hasOverflow)
-      setShowLeftArrow(container.scrollLeft > 0)
-      setShowRightArrow(container.scrollLeft < (container.scrollWidth - container.clientWidth))
+      setShowLeftArrow(container.scrollLeft > 20)
+      setShowRightArrow(
+        container.scrollLeft < (container.scrollWidth - container.clientWidth - 20)
+      )
     }
   }, [])
 
   useEffect(() => {
     checkOverflow()
     window.addEventListener('resize', checkOverflow)
-    return () => window.removeEventListener('resize', checkOverflow)
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener('scroll', checkOverflow)
+    }
+    return () => {
+      window.removeEventListener('resize', checkOverflow)
+      if (container) {
+        container.removeEventListener('scroll', checkOverflow)
+      }
+    }
   }, [checkOverflow])
 
   const scroll = (direction: 'left' | 'right') => {
     const container = containerRef.current
     if (container) {
-      const scrollAmount = direction === 'left' ? -200 : 200
+      const scrollAmount = direction === 'left' ? -300 : 300
       container.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
+
+  const getAlignmentClasses = () => {
+    switch (alignment) {
+      case 'left':
+        return 'justify-start'
+      case 'right':
+        return 'justify-end'
+      case 'center':
+      default:
+        return 'justify-center'
     }
   }
 
   return (
     <div className={`relative ${className}`}>
-      {/* Conteneur avec les effets de fondu sur les bords */}
-      <div className="relative">
+      <div className={`relative ${getAlignmentClasses()}`}>
         {/* Effet de fondu à gauche */}
         <div 
-          className={`absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none transition-opacity duration-300 ${
+          className={`absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/60 to-transparent z-10 pointer-events-none transition-opacity duration-500 ${
             showLeftArrow ? 'opacity-100' : 'opacity-0'
           }`}
         />
         
         {/* Effet de fondu à droite */}
         <div 
-          className={`absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none transition-opacity duration-300 ${
+          className={`absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/60 to-transparent z-10 pointer-events-none transition-opacity duration-500 ${
             showRightArrow ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -684,10 +775,10 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
         {/* Conteneur de défilement */}
         <div 
           ref={containerRef}
-          className="overflow-x-scroll scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative overflow-x-auto scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={checkOverflow}
         >
-          <div className="flex gap-4 w-max py-2 px-2">
+          <div className="flex gap-4 w-max py-2 px-4">
             {stories.map((story) => (
               <StoryStyle 
                 key={story.id}
@@ -701,25 +792,116 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
         </div>
 
         {/* Boutons de navigation avec transition douce */}
-        <button 
-          onClick={() => scroll('left')}
-          className={`absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center z-20 transition-all duration-300 ${
-            showLeftArrow ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 pointer-events-none'
+        <div 
+          className={`absolute left-2 top-1/2 -translate-y-1/2 z-30 transition-all duration-500 ${
+            showLeftArrow 
+              ? 'opacity-100 translate-x-0' 
+              : 'opacity-0 -translate-x-4 pointer-events-none'
           }`}
-          aria-hidden={!showLeftArrow}
         >
-          <ChevronLeft className="w-5 h-5 text-gray-600" />
-        </button>
+          <button 
+            onClick={() => scroll('left')}
+            className="w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center transition-transform duration-300 hover:scale-110"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
         
-        <button 
-          onClick={() => scroll('right')}
-          className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center z-20 transition-all duration-300 ${
-            showRightArrow ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
+        <div 
+          className={`absolute right-2 top-1/2 -translate-y-1/2 z-30 transition-all duration-500 ${
+            showRightArrow 
+              ? 'opacity-100 translate-x-0' 
+              : 'opacity-0 translate-x-4 pointer-events-none'
           }`}
-          aria-hidden={!showRightArrow}
         >
-          <ChevronRight className="w-5 h-5 text-gray-600" />
-        </button>
+          <button 
+            onClick={() => scroll('right')}
+            className="w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center transition-transform duration-300 hover:scale-110"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Nouveau composant wrapper pour la gestion des stories
+export function StoryViewer({
+  stories,
+  onClose,
+  selectedStoryId,
+  className = ''
+}: {
+  stories: Story[]
+  onClose: () => void
+  selectedStoryId?: string
+  className?: string
+}) {
+  const [selectedStory, setSelectedStory] = useState<Story | null>(
+    selectedStoryId ? stories.find(s => s.id === selectedStoryId) || stories[0] : stories[0]
+  )
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(
+    selectedStoryId ? stories.findIndex(s => s.id === selectedStoryId) : 0
+  )
+
+  const handleNextStory = useCallback(() => {
+    if (selectedStoryIndex < stories.length - 1) {
+      setSelectedStory(stories[selectedStoryIndex + 1])
+      setSelectedStoryIndex(prev => prev + 1)
+    } else {
+      onClose()
+    }
+  }, [selectedStoryIndex, stories, onClose])
+
+  const handlePrevStory = useCallback(() => {
+    if (selectedStoryIndex > 0) {
+      setSelectedStory(stories[selectedStoryIndex - 1])
+      setSelectedStoryIndex(prev => prev - 1)
+    } else {
+      onClose()
+    }
+  }, [selectedStoryIndex, stories, onClose])
+
+  const handleBackdropClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // Vérifier que le clic est bien sur le backdrop
+    const target = e.target as HTMLElement
+    if (target.classList.contains('story-viewer-backdrop')) {
+      e.preventDefault()
+      e.stopPropagation()
+      onClose()
+    }
+  }, [onClose])
+
+  if (!selectedStory) return null
+
+  return (
+    <div 
+      className="fixed inset-0 z-[9999] story-viewer-backdrop" 
+      onClick={handleBackdropClick}
+      onTouchEnd={handleBackdropClick}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+    >
+      <div 
+        className={`relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3 ${className}`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-full h-full flex items-center justify-center">
+          <StoryStyle
+            variant="preview"
+            story={selectedStory}
+            items={selectedStory.content ? JSON.parse(selectedStory.content).mediaItems : []}
+            profileImage={selectedStory.profile_image || undefined}
+            profileName={selectedStory.profile_name || undefined}
+            onComplete={onClose}
+            onNextStory={handleNextStory}
+            onPrevStory={handlePrevStory}
+            isFirstStory={selectedStoryIndex === 0}
+            isLastStory={selectedStoryIndex === stories.length - 1}
+            className="rounded-xl overflow-hidden"
+            isModal={true}
+          />
+        </div>
       </div>
     </div>
   )

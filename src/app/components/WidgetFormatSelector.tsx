@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { Package, Store } from 'lucide-react'
 
 export type WidgetSize = 'S' | 'M' | 'L'
+export type WidgetAlignment = 'left' | 'center' | 'right'
 
 export interface WidgetFormat {
   type: 'bubble' | 'card' | 'square'
   size: WidgetSize
+  alignment: WidgetAlignment
 }
 
 interface WidgetFormatSelectorProps {
@@ -51,6 +53,14 @@ const formats = [
 export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSelectorProps) {
   const [view, setView] = useState<'product' | 'home'>('product')
 
+  const handleFormatChange = (newFormat: Partial<WidgetFormat>) => {
+    onChange({
+      type: newFormat.type || value?.type || 'bubble',
+      size: newFormat.size || value?.size || 'S',
+      alignment: newFormat.alignment || value?.alignment || 'center'
+    })
+  }
+
   const renderWidget = (type: 'bubble' | 'card' | 'square', size: WidgetSize = value?.size || 'S') => {
     const getSize = () => {
       switch (size) {
@@ -78,11 +88,17 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
     }
 
     const sizes = getSize()
+    const alignment = value?.alignment || 'center'
+    const alignmentClasses = {
+      left: 'justify-start',
+      center: 'justify-center',
+      right: 'justify-end'
+    }
 
     switch (type) {
       case 'bubble':
         return (
-          <div className="flex items-center gap-[2px]">
+          <div className={`flex items-center gap-[2px] ${alignmentClasses[alignment]}`}>
             {[...Array(4)].map((_, i) => (
               <div 
                 key={i} 
@@ -94,7 +110,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
         )
       case 'card':
         return (
-          <div className="flex items-start gap-[2px]">
+          <div className={`flex items-start gap-[2px] ${alignmentClasses[alignment]}`}>
             {[...Array(4)].map((_, i) => (
               <div 
                 key={i} 
@@ -106,7 +122,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
         )
       case 'square':
         return (
-          <div className="flex items-center gap-[2px]">
+          <div className={`flex items-center gap-[2px] ${alignmentClasses[alignment]}`}>
             {[...Array(4)].map((_, i) => (
               <div 
                 key={i} 
@@ -177,7 +193,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
             </div>
 
             {/* Widget Display */}
-            <div className="mt-3">
+            <div className="mt-3 w-full">
               {renderWidget(type)}
             </div>
 
@@ -223,7 +239,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
               <div className="w-32 h-1 bg-gray-100 rounded-full" />
             </div>
           </div>
-          <div className="mt-2">
+          <div className="mt-2 w-full">
             {renderWidget(type)}
           </div>
         </div>
@@ -279,26 +295,54 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
           </div>
         </div>
 
-        {/* Size Selector */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Taille du widget
-          </label>
-          <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
-            {(['S', 'M', 'L'] as const).map((size) => (
-              <button
-                key={size}
-                onClick={() => onChange({ type: value?.type || 'bubble', size })}
-                className={`
-                  w-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors
-                  ${value?.size === size
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'}
-                `}
-              >
-                {size}
-              </button>
-            ))}
+        {/* Size and Alignment Controls */}
+        <div className="flex gap-6">
+          {/* Size Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Taille du widget
+            </label>
+            <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
+              {(['S', 'M', 'L'] as const).map((size) => (
+                <button
+                  key={size}
+                  onClick={() => handleFormatChange({ size })}
+                  className={`
+                    w-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors
+                    ${value?.size === size
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'}
+                  `}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Alignment Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Alignement
+            </label>
+            <div className="flex h-10 bg-gray-100 rounded-lg p-1 w-[180px]">
+              {(['left', 'center', 'right'] as const).map((alignment) => (
+                <button
+                  key={alignment}
+                  onClick={() => handleFormatChange({ alignment })}
+                  className={`
+                    flex-1 flex items-center justify-center rounded-md text-sm font-medium transition-colors
+                    ${value?.alignment === alignment
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'}
+                  `}
+                >
+                  {alignment === 'left' && 'Gauche'}
+                  {alignment === 'center' && 'Centre'}
+                  {alignment === 'right' && 'Droite'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -307,7 +351,7 @@ export default function WidgetFormatSelector({ value, onChange }: WidgetFormatSe
         {formats.map((format) => (
           <button
             key={format.type}
-            onClick={() => onChange({ type: format.type, size: value?.size || 'S' })}
+            onClick={() => handleFormatChange({ type: format.type })}
             className={`
               group relative transition-all duration-200
               ${value?.type === format.type ? 'scale-[1.02]' : ''}

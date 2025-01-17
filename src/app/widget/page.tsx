@@ -15,7 +15,6 @@ import React from 'react'
 import Loader from '@/app/components/Loader'
 import { useAuth } from '@/hooks/useAuth'
 import DeleteConfirmation from '../components/DeleteConfirmation'
-import VideoThumbnail from '@/components/VideoThumbnail'
 
 export interface Widget {
   id: string
@@ -176,7 +175,18 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
     return (
       <div className="absolute inset-0">
         {isVideo ? (
-          <VideoThumbnail url={mediaUrl} className="w-full h-full object-cover" />
+          <div className="relative w-full h-full">
+            <video 
+              className="w-full h-full object-cover"
+              src={mediaUrl}
+              preload="metadata"
+              muted
+              playsInline
+              onLoadedMetadata={(e) => {
+                e.currentTarget.currentTime = e.currentTarget.duration * 0.25
+              }}
+            />
+          </div>
         ) : (
           <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
         )}
@@ -216,7 +226,7 @@ function WidgetCard({ widget, onDelete, onPreview }: { widget: Widget; onDelete:
           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-75"
         >
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-lg text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110">
-            <Eye className="w-5 h-5" />
+            <Play className="w-5 h-5" fill="currentColor" />
           </div>
         </button>
       </div>
