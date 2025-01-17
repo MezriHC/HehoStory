@@ -2,6 +2,7 @@
 
 import { Layers, Plus } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
+import EmptyFolderState from '../components/EmptyFolderState'
 import StoriesList, { Story } from '../components/StoriesList'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,12 +17,22 @@ import DeleteConfirmation from '@/app/components/DeleteConfirmation'
 
 type Folder = Database['public']['Tables']['folders']['Row']
 
+interface ToastState {
+  message: string
+  visible: boolean
+  type?: 'success' | 'error' | 'info'
+}
+
 export default function StoriesPage() {
   const router = useRouter()
   const { userId, loading: authLoading, supabase } = useAuth()
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
   const [selectedStories, setSelectedStories] = useState<string[]>([])
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false })
+  const [toast, setToast] = useState<ToastState>({ 
+    message: '', 
+    visible: false,
+    type: 'success'
+  })
   const [storyToDelete, setStoryToDelete] = useState<string | null>(null)
 
   // Charger les stories
@@ -99,12 +110,46 @@ export default function StoriesPage() {
 
   const handleCreateFolder = async (name: string) => {
     if (!userId) return
+    
+    // Validation du nom
+    const trimmedName = name.trim()
+    if (trimmedName.length < 1 || trimmedName.length > 50) {
+      setToast({ 
+        message: 'Le nom du dossier doit contenir entre 1 et 50 caractères', 
+        visible: true,
+        type: 'error'
+      })
+      return
+    }
+
+    // Vérifier si le dossier existe déjà
+    const existingFolder = folders.find(
+      f => f.name.toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (existingFolder) {
+      setToast({ 
+        message: 'Un dossier avec ce nom existe déjà', 
+        visible: true,
+        type: 'error'
+      })
+      return
+    }
 
     try {
+      // Vérifier le nombre de dossiers
+      if (folders.length >= 50) {
+        setToast({ 
+          message: 'Vous avez atteint la limite de 50 dossiers', 
+          visible: true,
+          type: 'error'
+        })
+        return
+      }
+
       const { data: folder, error: folderError } = await supabase
         .from('folders')
         .insert({
-          name,
+          name: trimmedName,
           author_id: userId
         })
         .select()
@@ -112,7 +157,7 @@ export default function StoriesPage() {
 
       if (folderError) throw folderError
 
-      // Si des stories sont sélectionnées, les déplacer dans le nouveau dossier
+      // Si des stories sont sélectionnées, les déplacer
       if (selectedStories.length > 0) {
         const { error: updateError } = await supabase
           .from('stories')
@@ -122,20 +167,19 @@ export default function StoriesPage() {
         if (updateError) throw updateError
       }
 
-      // Actualiser les données
       await Promise.all([refetchFolders(), refetchStories()])
-      
-      // Reset selection
       setSelectedStories([])
       setToast({ 
-        message: `Dossier "${name}" créé avec succès`, 
-        visible: true 
+        message: `Dossier "${trimmedName}" créé avec succès`, 
+        visible: true,
+        type: 'success'
       })
     } catch (error) {
       console.error('Error creating folder:', error)
       setToast({ 
         message: 'Erreur lors de la création du dossier', 
-        visible: true 
+        visible: true,
+        type: 'error'
       })
     }
   }
@@ -144,6 +188,19 @@ export default function StoriesPage() {
     if (!userId || !folderId) return
 
     try {
+      // Vérifier si le dossier contient des stories
+      const storiesInFolder = stories.filter(s => s.folder_id === folderId)
+      
+      if (storiesInFolder.length > 0) {
+        const confirmMessage = `Ce dossier contient ${storiesInFolder.length} élément${
+          storiesInFolder.length > 1 ? 's' : ''
+        }. Ces éléments seront déplacés à la racine. Êtes-vous sûr de vouloir continuer ?`
+        
+        if (!window.confirm(confirmMessage)) {
+          return
+        }
+      }
+
       // Retirer le dossier des stories
       const { error: updateError } = await supabase
         .from('stories')
@@ -157,26 +214,27 @@ export default function StoriesPage() {
         .from('folders')
         .delete()
         .eq('id', folderId)
+        .eq('author_id', userId) // Vérification supplémentaire de la propriété
 
       if (deleteError) throw deleteError
 
-      // Actualiser les données
       await Promise.all([refetchFolders(), refetchStories()])
 
-      // Si on était dans ce dossier, retourner à tous les éléments
       if (currentFolder === folderId) {
         setCurrentFolder(null)
       }
 
       setToast({ 
         message: 'Dossier supprimé avec succès', 
-        visible: true 
+        visible: true,
+        type: 'success'
       })
     } catch (error) {
       console.error('Error deleting folder:', error)
       setToast({ 
         message: 'Erreur lors de la suppression du dossier', 
-        visible: true 
+        visible: true,
+        type: 'error'
       })
     }
   }
@@ -314,9 +372,11 @@ export default function StoriesPage() {
             actionHref="/story/create"
           />
         ) : filteredStories.length === 0 && currentFolder !== null ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Aucune story dans ce dossier</p>
-          </div>
+          <EmptyFolderState 
+            message={`Aucune story dans ${
+              folders.find(f => f.id === currentFolder)?.name || 'ce dossier'
+            }`}
+          />
         ) : (
           <StoriesList
             stories={filteredStories}

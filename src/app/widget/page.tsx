@@ -1,10 +1,11 @@
 'use client'
 
-import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, Pencil, Image as ImageIcon, Play, Clock, Square, Circle } from 'lucide-react'
+import { Code2, Layers, Plus, Search, Settings, MoreVertical, ExternalLink, Trash2, Edit, X, Check, ClipboardCopy, MoreHorizontal, Heart, Send, Eye, Pencil, Image as ImageIcon, Play, Clock, Square, Circle, LayoutGrid } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import EmptyState from '../components/EmptyState'
+import EmptyFolderState from '../components/EmptyFolderState'
 import { WidgetFormat } from '../components/WidgetFormatSelector'
 import BrowserPreview from '../components/BrowserPreview'
 import CodeModal from '../components/CodeModal'
@@ -595,9 +596,9 @@ export default function WidgetsPage() {
             </div>
           </div>
           <EmptyState
-            icon={Layers}
+            icon={LayoutGrid}
             title="Aucun widget"
-            description="Créez votre premier widget pour commencer à collecter et afficher des stories"
+            description="Commencez par créer votre premier widget"
             actionLabel="Créer un widget"
             actionHref="/widget/create"
           />
@@ -678,18 +679,34 @@ export default function WidgetsPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredWidgets.map(widget => (
-            <WidgetCard
-              key={widget.id}
-              widget={widget}
-              onDelete={handleDelete}
-              onPreview={() => handlePreview(widget)}
-              selected={selectedWidgets.includes(widget.id)}
-              onSelect={() => handleWidgetSelect(widget.id)}
-            />
-          ))}
-        </div>
+        {widgets.length === 0 ? (
+          <EmptyState
+            icon={LayoutGrid}
+            title="Aucun widget"
+            description="Commencez par créer votre premier widget"
+            actionLabel="Créer un widget"
+            actionHref="/widget/create"
+          />
+        ) : filteredWidgets.length === 0 && currentFolder !== null ? (
+          <EmptyFolderState 
+            message={`Aucun widget dans ${
+              folders.find(f => f.id === currentFolder)?.name || 'ce dossier'
+            }`}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredWidgets.map((widget) => (
+              <WidgetCard
+                key={widget.id}
+                widget={widget}
+                onDelete={handleDelete}
+                onPreview={() => handlePreview(widget)}
+                selected={selectedWidgets.includes(widget.id)}
+                onSelect={() => handleWidgetSelect(widget.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
