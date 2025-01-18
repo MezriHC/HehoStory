@@ -1,1 +1,7 @@
-{}
+{
+  "/widget/page": "app/widget/page.js",
+  "/widget/create/page": "app/widget/create/page.js",
+  "/story/page": "app/story/page.js",
+  "/integration/page": "app/integration/page.js",
+  "/page": "app/page.js"
+}
