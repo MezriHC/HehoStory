@@ -31,6 +31,7 @@ export interface Widget {
   published: boolean
   author_id: string
   folder_id: string | null
+  border_color?: string
 }
 
 interface WidgetCardProps {
