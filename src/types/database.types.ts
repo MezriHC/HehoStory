@@ -1,3 +1,5 @@
+import { Story } from '@/app/components/StoriesList'
+
 export type Json =
   | string
   | number
@@ -143,6 +145,12 @@ export interface Folder {
   name: string
   author_id: string
   created_at: string
+}
+
+export type WidgetFormat = {
+  type: 'card' | 'grid' | 'list' | 'bubble' | 'square'
+  size: 'S' | 'M' | 'L'
+  alignment: 'left' | 'center' | 'right'
 }
 
 export interface Widget {

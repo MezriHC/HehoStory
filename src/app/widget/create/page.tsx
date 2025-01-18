@@ -1,17 +1,16 @@
 import { Suspense } from 'react'
-import { use } from 'react'
-import WidgetEditor from './WidgetEditor'
+import CreateWidgetClient from './CreateWidgetClient'
 
 interface PageProps {
-  searchParams: { widget?: string }
+  searchParams: Promise<{ widget?: string }>
 }
 
-export default function CreateWidgetPage({ searchParams }: PageProps) {
-  const initialWidget = searchParams.widget ? JSON.parse(searchParams.widget) : undefined
+export default async function CreateWidgetPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <WidgetEditor initialWidget={initialWidget} />
+      <CreateWidgetClient initialWidget={resolvedParams.widget} />
     </Suspense>
   )
 } 

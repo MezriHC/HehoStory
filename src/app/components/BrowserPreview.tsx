@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { WidgetFormat, WidgetSize } from './WidgetFormatSelector'
+import { WidgetSize } from './WidgetFormatSelector'
 import { Story } from './StoriesList'
 import StoryStyle, { StoryCarousel, StoryViewer } from '@/components/StoryStyle'
 import { ShoppingCart, Heart, Share2, X, Store, Package, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useWidgetStories } from '@/hooks/useWidgetStories'
+import { WidgetFormat } from '@/types/database.types'
 
 interface BrowserPreviewProps {
   isOpen: boolean
@@ -17,6 +18,7 @@ interface BrowserPreviewProps {
     stories?: Story[]
   }
   stories?: Story[]
+  borderColor?: string
 }
 
 // Fonction de conversion des tailles
@@ -370,7 +372,7 @@ function HomeSkeleton({
   )
 }
 
-export default function BrowserPreview({ isOpen, onClose, widget, stories }: BrowserPreviewProps) {
+export default function BrowserPreview({ isOpen, onClose, widget, stories, borderColor }: BrowserPreviewProps) {
   const [mounted, setMounted] = useState(false)
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'home' | 'product'>('home')

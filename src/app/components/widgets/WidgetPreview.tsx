@@ -1,4 +1,5 @@
 import BrowserPreview from '../BrowserPreview'
+import { WidgetFormat } from '@/types/database.types'
 
 interface WidgetPreviewProps {
   borderColor: string
@@ -10,10 +11,15 @@ export default function WidgetPreview({ borderColor }: WidgetPreviewProps) {
       isOpen={true}
       onClose={() => {}}
       widget={{
-        format: 'card',
+        format: {
+          type: 'card',
+          size: 'M',
+          alignment: 'center'
+        },
         story_ids: []
       }}
       stories={[]}
+      borderColor={borderColor}
     />
   )
 } 

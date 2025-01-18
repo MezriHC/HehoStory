@@ -289,7 +289,20 @@ export default function ProfilePage() {
                   </span>
                 </label>
                 <div className="bg-gray-50 rounded-xl p-6">
-                  <BrowserPreview borderColor={profile.widgetBorderColor} />
+                  <BrowserPreview 
+                    isOpen={true}
+                    onClose={() => {}}
+                    widget={{
+                      format: {
+                        type: 'card',
+                        size: 'M',
+                        alignment: 'center'
+                      },
+                      story_ids: []
+                    }}
+                    stories={[]}
+                    borderColor={profile.widgetBorderColor}
+                  />
                 </div>
               </div>
             </div>
@@ -310,8 +323,8 @@ export default function ProfilePage() {
 
       <Toast 
         message="Profile saved successfully"
-        show={showToast}
-        onHide={() => setShowToast(false)}
+        visible={showToast}
+        onClose={() => setShowToast(false)}
       />
     </div>
   )

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import CreateWidgetPage from '../../create/page'
+import CreateWidgetClient from '../../create/CreateWidgetClient'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 
@@ -53,5 +53,5 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     return null
   }
 
-  return <CreateWidgetPage searchParams={{ widget: JSON.stringify(widget) }} />
+  return <CreateWidgetClient initialWidget={JSON.stringify(widget)} />
 } 

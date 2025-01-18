@@ -228,7 +228,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
         // Charger les stories
         const { data: storiesData, error: storiesError } = await authClient
           .from('stories')
-          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name')
+          .select('id, title, thumbnail, content, author_id, published, created_at, profile_image, profile_name, folder_id')
           .eq('author_id', userId)
           .order('created_at', { ascending: false })
 
