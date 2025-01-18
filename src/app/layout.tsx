@@ -16,11 +16,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="fr" className="h-full">
+      <body className={`${inter.className} h-full antialiased`}>
         <Providers>
-          <Header />
-          {children}
+          <div className="min-h-full flex flex-col">
+            <Header />
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
+              {children}
+            </main>
+          </div>
         </Providers>
       </body>
     </html>

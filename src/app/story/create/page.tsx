@@ -197,7 +197,7 @@ function StoryEditor() {
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const editId = searchParams.get('edit')
+  const editId = searchParams?.get('edit') ?? null
   const queryClient = useQueryClient()
 
   useEffect(() => {

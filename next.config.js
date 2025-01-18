@@ -6,13 +6,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com',
+      },
     ],
-  },
-  experimental: {
-    optimizeCss: true,
-  },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
