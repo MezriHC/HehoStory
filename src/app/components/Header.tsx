@@ -35,7 +35,6 @@ const languages: Language[] = [
 const navItems: NavItem[] = [
   { label: 'Stories', href: '/story' },
   { label: 'Widgets', href: '/widget' },
-  { label: 'Integration', href: '/integration' },
 ]
 
 interface Profile {

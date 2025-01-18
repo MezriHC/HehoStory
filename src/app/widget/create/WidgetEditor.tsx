@@ -196,25 +196,20 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const router = useRouter()
   const { userId, loading: authLoading, supabase: authClient } = useAuth()
   const [step, setStep] = useState(1)
-  const [format, setFormat] = useState<WidgetFormat | null>(
-    initialWidget ? 
-    (typeof initialWidget.format === 'string' ? JSON.parse(initialWidget.format) : initialWidget.format) 
-    : { type: 'bubble', size: 'S', alignment: 'center' }
+  const [format, setFormat] = useState<WidgetFormat | null>(() => {
+    if (!initialWidget) return null
+    return typeof initialWidget.format === 'string' 
+      ? JSON.parse(initialWidget.format) 
+      : initialWidget.format
+  })
+  const [selectedStories, setSelectedStories] = useState<string[]>(() => 
+    initialWidget?.story_ids || []
   )
-  const [selectedStories, setSelectedStories] = useState<string[]>(initialWidget?.story_ids || [])
-  const [name, setName] = useState(initialWidget?.name || '')
+  const [name, setName] = useState(() => initialWidget?.name || '')
   const [stories, setStories] = useState<Story[]>([])
   const [showPreview, setShowPreview] = useState(false)
   const [widgetBorderColor, setWidgetBorderColor] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    if (initialWidget) {
-      setName(initialWidget.name)
-      setFormat(initialWidget.format)
-      setSelectedStories(initialWidget.story_ids)
-    }
-  }, [initialWidget])
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -225,6 +220,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   useEffect(() => {
     async function loadData() {
       try {
+        setIsLoading(true)
         // Charger les stories
         const { data: storiesData, error: storiesError } = await authClient
           .from('stories')
@@ -389,6 +385,15 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     published: true,
     author_id: userId || ''
   } : null
+
+  // Show loading state while fetching data
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">

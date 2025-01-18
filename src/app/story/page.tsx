@@ -157,18 +157,7 @@ export default function StoriesPage() {
 
       if (folderError) throw folderError
 
-      // Si des stories sont sélectionnées, les déplacer
-      if (selectedStories.length > 0) {
-        const { error: updateError } = await supabase
-          .from('stories')
-          .update({ folder_id: folder.id })
-          .in('id', selectedStories)
-
-        if (updateError) throw updateError
-      }
-
-      await Promise.all([refetchFolders(), refetchStories()])
-      setSelectedStories([])
+      await refetchFolders()
       setToast({ 
         message: `Dossier "${trimmedName}" créé avec succès`, 
         visible: true,
@@ -191,16 +180,6 @@ export default function StoriesPage() {
       // Vérifier si le dossier contient des stories
       const storiesInFolder = stories.filter(s => s.folder_id === folderId)
       
-      if (storiesInFolder.length > 0) {
-        const confirmMessage = `Ce dossier contient ${storiesInFolder.length} élément${
-          storiesInFolder.length > 1 ? 's' : ''
-        }. Ces éléments seront déplacés à la racine. Êtes-vous sûr de vouloir continuer ?`
-        
-        if (!window.confirm(confirmMessage)) {
-          return
-        }
-      }
-
       // Retirer le dossier des stories
       const { error: updateError } = await supabase
         .from('stories')

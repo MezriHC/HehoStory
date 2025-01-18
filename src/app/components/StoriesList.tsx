@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import StoryStyle from '@/components/StoryStyle'
-import DeleteConfirmation from './DeleteConfirmation'
 
 export interface Story {
   id: string
@@ -34,7 +33,6 @@ export default function StoriesList({
   onStorySelect
 }: StoriesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -162,17 +160,6 @@ export default function StoriesList({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredStories.map(story => (
           <div key={story.id} className="relative">
-            <DeleteConfirmation 
-              isOpen={showDeleteConfirm === story.id}
-              onClose={() => setShowDeleteConfirm(null)}
-              onConfirm={() => {
-                onDelete(story.id)
-                setShowDeleteConfirm(null)
-              }}
-              title="Delete Story"
-              description="Are you sure you want to delete this story? This action cannot be undone."
-            />
-
             {/* Story card */}
             <div 
               className={`bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 relative ${
@@ -252,8 +239,11 @@ export default function StoriesList({
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setSelectedStory(story)}
                       className="flex items-center justify-center flex-1 h-9 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedStory(story)
+                      }}
                     >
                       <Play className="w-4 h-4 mr-1.5" />
                       Preview
@@ -262,12 +252,16 @@ export default function StoriesList({
                       <Link
                         href={`/story/create?edit=${story.id}`}
                         className="flex items-center justify-center w-9 h-9 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <Pencil className="w-4 h-4" />
                       </Link>
                       <button
-                        onClick={() => setShowDeleteConfirm(story.id)}
                         className="group flex items-center justify-center w-9 h-9 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDelete(story.id)
+                        }}
                       >
                         <Trash2 className="w-4 h-4 group-hover:text-red-300 transition-colors" />
                       </button>

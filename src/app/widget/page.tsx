@@ -33,45 +33,15 @@ export interface Widget {
   folder_id: string | null
 }
 
-function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
-  return (
-    <div className="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center">
-      <div className="w-6 h-6 text-white">
-        {format.type === 'bubble' && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="4" />
-          </svg>
-        )}
-        {format.type === 'card' && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-          </svg>
-        )}
-        {format.type === 'square' && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" />
-          </svg>
-        )}
-      </div>
-    </div>
-  )
+interface WidgetCardProps {
+  widget: Widget
+  onDelete: (id: string) => void
+  onPreview: () => void
+  selected: boolean
+  onSelect: () => void
 }
 
-function WidgetCard({ 
-  widget, 
-  onDelete, 
-  onPreview,
-  selected = false,
-  onSelect
-}: { 
-  widget: Widget; 
-  onDelete: (id: string) => void; 
-  onPreview: () => void;
-  selected?: boolean;
-  onSelect?: () => void;
-}): React.ReactElement {
-  const [showMenu, setShowMenu] = useState(false)
+function WidgetCard({ widget, onDelete, onPreview, selected, onSelect }: WidgetCardProps) {
   const [showCode, setShowCode] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [storyData, setStoryData] = useState<Story[]>([])
@@ -139,22 +109,6 @@ function WidgetCard({
     square: 'Square Stories'
   }
 
-  const handleDelete = () => {
-    setShowMenu(false)
-    onDelete(widget.id)
-  }
-
-  const getWidgetCode = () => {
-    return `<!-- Hehostory Widget -->
-    <script>
-      window.HEHOSTORY_WIDGET = {
-        id: "${widget.id}",
-        format: "${widget.format}"
-      }
-    </script>
-    <script async src="https://cdn.hehostory.com/widget.js"></script>`
-  }
-
   const renderPreview = () => {
     // Find the first story based on the order in widget.story_ids
     const firstStoryId = widget.story_ids[0]
@@ -210,7 +164,14 @@ function WidgetCard({
       <CodeModal
         isOpen={showCode}
         onClose={() => setShowCode(false)}
-        code={getWidgetCode()}
+        code={`<!-- Hehostory Widget -->
+<script>
+  window.HEHOSTORY_WIDGET = {
+    id: "${widget.id}",
+    format: "${widget.format}"
+  }
+</script>
+<script async src="https://cdn.hehostory.com/widget.js"></script>`}
       />
 
       <SettingsModal
@@ -227,7 +188,7 @@ function WidgetCard({
         className={`bg-white border border-gray-200/75 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 h-[420px] ${
           selected ? 'ring-2 ring-gray-900' : ''
         }`}
-        onClick={onSelect}
+        onClick={() => onSelect()}
       >
         {/* Selection indicator */}
         {selected && (
@@ -272,33 +233,46 @@ function WidgetCard({
             {/* Actions */}
             <div className="flex items-center gap-2">
               <button
-                onClick={onPreview}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPreview()
+                }}
                 className="flex items-center justify-center flex-1 h-10 text-sm font-medium text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
               >
-                <Eye className="w-4 h-4 mr-2" />
+                <Play className="w-4 h-4 mr-2" />
                 Preview
               </button>
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/widget/${widget.id}/edit`}
-                  className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
-                >
-                  <Pencil className="w-4 h-4" />
-                </Link>
                 <button
-                  onClick={() => setShowCode(true)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowCode(true)
+                  }}
                   className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
                 >
                   <Code2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setShowSettings(true)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowSettings(true)
+                  }}
                   className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
+                <Link
+                  href={`/widget/${widget.id}/edit`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Link>
                 <button
-                  onClick={handleDelete}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(widget.id)
+                  }}
                   className="group flex items-center justify-center w-10 h-10 text-white bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-colors"
                 >
                   <Trash2 className="w-4 h-4 group-hover:text-red-300 transition-colors" />
@@ -307,6 +281,31 @@ function WidgetCard({
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function WidgetFormatIcon({ format }: { format: WidgetFormat }) {
+  return (
+    <div className="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center">
+      <div className="w-6 h-6 text-white">
+        {format.type === 'bubble' && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" />
+          </svg>
+        )}
+        {format.type === 'card' && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+          </svg>
+        )}
+        {format.type === 'square' && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" />
+          </svg>
+        )}
       </div>
     </div>
   )
@@ -382,11 +381,6 @@ export default function WidgetsPage() {
 
       setFolders(prev => [...prev, data])
       setToast({ message: `Dossier "${name}" créé avec succès`, visible: true })
-
-      // If widgets are selected, move them to the new folder
-      if (selectedWidgets.length > 0) {
-        await handleMoveToFolder(data.id)
-      }
     } catch (error) {
       console.error('Error creating folder:', error)
       alert('Failed to create folder. Please try again.')
@@ -413,6 +407,16 @@ export default function WidgetsPage() {
 
       setFolders(prev => prev.filter(f => f.id !== folderId))
       setCurrentFolder(null)
+      
+      // Rafraîchir les widgets
+      const { data: updatedWidgets, error: widgetsError } = await authClient
+        .from('widgets')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (widgetsError) throw widgetsError
+      
+      setWidgets(updatedWidgets)
       setToast({ message: 'Dossier supprimé avec succès', visible: true })
     } catch (error) {
       console.error('Error deleting folder:', error)
@@ -462,9 +466,7 @@ export default function WidgetsPage() {
   const filteredWidgets = widgets
     .filter(widget =>
       widget.name.toLowerCase().includes(search.toLowerCase()) &&
-      (currentFolder === null 
-        ? !widget.folder_id 
-        : widget.folder_id === currentFolder)
+      (currentFolder === null || widget.folder_id === currentFolder)
     )
 
   const handleDelete = async (id: string) => {

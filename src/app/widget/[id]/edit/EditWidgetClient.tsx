@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import CreateWidgetClient from '../../create/CreateWidgetClient'
+import WidgetEditor from '../../create/WidgetEditor'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 
@@ -10,23 +10,28 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
   const [widget, setWidget] = useState<Widget | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const { supabase: authClient } = useAuth()
+  const { userId, supabase: authClient } = useAuth()
 
   useEffect(() => {
     const loadWidget = async () => {
+      if (!userId) return
+
       try {
-        const { data, error } = await authClient
+        // Charger le widget
+        const { data: widgetData, error: widgetError } = await authClient
           .from('widgets')
           .select('*')
           .eq('id', widgetId)
+          .eq('author_id', userId)
           .single()
 
-        if (error) throw error
+        if (widgetError) throw widgetError
         
         // Parse le format si c'est une chaîne de caractères
         const parsedWidget = {
-          ...data,
-          format: typeof data.format === 'string' ? JSON.parse(data.format) : data.format
+          ...widgetData,
+          format: typeof widgetData.format === 'string' ? JSON.parse(widgetData.format) : widgetData.format,
+          story_ids: widgetData.story_ids || []
         }
         
         setWidget(parsedWidget)
@@ -39,7 +44,7 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     }
 
     loadWidget()
-  }, [widgetId, router, authClient])
+  }, [widgetId, userId, router, authClient])
 
   if (loading) {
     return (
@@ -53,5 +58,5 @@ export default function EditWidgetClient({ widgetId }: { widgetId: string }) {
     return null
   }
 
-  return <CreateWidgetClient initialWidget={JSON.stringify(widget)} />
+  return <WidgetEditor initialWidget={widget} />
 } 
