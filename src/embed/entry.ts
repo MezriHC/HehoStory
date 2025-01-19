@@ -7,6 +7,7 @@ import './styles.css';
 console.log('🎬 Démarrage du script HehoStory');
 console.log('🔄 Version du build:', new Date().toISOString());
 console.log('🔍 DEBUG MODE ACTIVÉ - v2');
+console.log('🎯 Test de mise à jour - Build du', new Date().toLocaleString());
 
 // Types pour la base de données
 interface DBStory {
