@@ -1,27 +1,17 @@
 import { User, Pause, Play, Volume2, VolumeX, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Story } from '@/app/components/StoriesList'
-
-interface MediaItem {
-  id: string
-  type: 'image' | 'video'
-  url: string
-  file: File | null
-}
-
-type StoryVariant = 'preview' | 'bubble' | 'card' | 'square'
+import { Story, MediaItem, Size, Variant, Alignment } from '../types'
 
 interface StoryStyleProps {
-  variant: StoryVariant
+  variant: Variant
   story?: Story
   items?: MediaItem[]
   profileImage?: string
   profileName?: string
   onComplete?: () => void
   onClick?: () => void
-  size?: 'sm' | 'md' | 'lg'
+  size?: Size
   className?: string
-  isPhonePreview?: boolean
   hideNavigation?: boolean
   onNextStory?: () => void
   onPrevStory?: () => void
@@ -32,17 +22,17 @@ interface StoryStyleProps {
 
 interface StoryCarouselProps {
   stories: Story[]
-  variant: 'bubble' | 'card' | 'square'
-  size: 'sm' | 'md' | 'lg'
+  variant: Variant
+  size: Size
   onStorySelect: (story: Story) => void
   className?: string
-  alignment?: 'left' | 'center' | 'right'
+  alignment?: Alignment
 }
 
 const STORY_DURATION = 5000 // 5 seconds for images
 const PROGRESS_BAR_WIDTH = 100 // percentage
 
-export default function StoryStyle({ 
+export function StoryStyle({ 
   variant,
   story,
   items,
@@ -50,9 +40,8 @@ export default function StoryStyle({
   profileName,
   onComplete,
   onClick,
-  size = 'md',
+  size = 'M',
   className = '',
-  isPhonePreview = false,
   hideNavigation = false,
   onNextStory,
   onPrevStory,
@@ -79,22 +68,21 @@ export default function StoryStyle({
   const thumbnailStyles = {
     bubble: 'rounded-full border-[3px] border-black shadow-lg transition-transform duration-200 flex items-center justify-center',
     card: 'aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200',
-    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200',
-    preview: 'w-full h-full'
+    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200'
   }
 
   const sizeStyles = {
-    sm: {
+    S: {
       bubble: 'w-[70px] h-[70px]',
       card: 'w-[100px]',
       square: 'w-14'
     },
-    md: {
+    M: {
       bubble: 'w-[90px] h-[90px]',
       card: 'w-[140px]',
       square: 'w-16'
     },
-    lg: {
+    L: {
       bubble: 'w-[120px] h-[120px]',
       card: 'w-[180px]',
       square: 'w-24'
@@ -105,17 +93,16 @@ export default function StoryStyle({
   if (variant !== 'preview') {
     const mediaContent = story?.content ? JSON.parse(story.content) : null
     const mediaUrl = story?.thumbnail || mediaContent?.mediaItems[0]?.url
-    const mediaType = mediaContent?.mediaItems[0]?.type
     const containerStyle = `${thumbnailStyles[variant]} ${sizeStyles[size][variant]} ${className} relative cursor-pointer group flex-shrink-0`
 
     // Déterminer la largeur maximale en fonction du variant et de la taille
     const getMaxWidth = () => {
       if (variant === 'bubble') {
-        return size === 'sm' ? 'max-w-[70px]' : size === 'md' ? 'max-w-[90px]' : 'max-w-[120px]'
+        return size === 'S' ? 'max-w-[70px]' : size === 'M' ? 'max-w-[90px]' : 'max-w-[120px]'
       } else if (variant === 'card') {
-        return size === 'sm' ? 'max-w-[100px]' : size === 'md' ? 'max-w-[140px]' : 'max-w-[180px]'
+        return size === 'S' ? 'max-w-[100px]' : size === 'M' ? 'max-w-[140px]' : 'max-w-[180px]'
       } else { // square
-        return size === 'sm' ? 'max-w-14' : size === 'md' ? 'max-w-16' : 'max-w-24'
+        return size === 'S' ? 'max-w-14' : size === 'M' ? 'max-w-16' : 'max-w-24'
       }
     }
 
@@ -126,7 +113,7 @@ export default function StoryStyle({
           onClick={onClick}
         >
           {variant === 'bubble' ? (
-            <div className={`${size === 'sm' ? 'w-[60px] h-[60px]' : size === 'md' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
+            <div className={`${size === 'S' ? 'w-[60px] h-[60px]' : size === 'M' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
               {mediaUrl ? (
                 <>
                   <img 
@@ -136,13 +123,13 @@ export default function StoryStyle({
                   />
                   <div className="absolute inset-0 bg-black/10">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Play className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
+                      <Play className={`${size === 'S' ? 'w-5 h-5' : size === 'M' ? 'w-6 h-6' : 'w-7 h-7'} text-white drop-shadow-sm`} fill="currentColor" />
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
+                  <User className={`${size === 'S' ? 'w-5 h-5' : size === 'M' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
                 </div>
               )}
             </div>
@@ -157,14 +144,14 @@ export default function StoryStyle({
                   />
                   <div className="absolute inset-0 bg-black/10">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Play className={`${size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
+                      <Play className={`${size === 'S' ? 'w-7 h-7' : size === 'M' ? 'w-8 h-8' : 'w-10 h-10'} text-white drop-shadow-sm`} fill="currentColor" />
                     </div>
                   </div>
                   {/* Gradient et texte pour les cartes */}
                   {variant === 'card' && story?.profile_name && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-2">
                       <div className={`text-center truncate font-medium text-white ${
-                        size === 'sm' ? 'text-xs' : 'text-sm'
+                        size === 'S' ? 'text-xs' : 'text-sm'
                       }`}>
                         {story.profile_name}
                       </div>
@@ -173,7 +160,7 @@ export default function StoryStyle({
                 </>
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                  <User className={`${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
+                  <User className={`${size === 'S' ? 'w-5 h-5' : size === 'M' ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400`} />
                 </div>
               )}
             </div>
@@ -182,7 +169,7 @@ export default function StoryStyle({
         {/* Afficher le texte en dessous seulement pour les bubbles et squares */}
         {story?.profile_name && variant !== 'card' && (
           <div className={`text-center truncate font-medium ${getMaxWidth()} ${
-            size === 'sm' ? 'text-xs' : 'text-sm'
+            size === 'S' ? 'text-xs' : 'text-sm'
           }`}>
             {story.profile_name}
           </div>
@@ -205,7 +192,7 @@ export default function StoryStyle({
     }
   }, [])
 
-  // Logique de navigation simplifiée
+  // Logique de navigation
   const goToNextStory = useCallback(() => {
     if (isLastStory) {
       onComplete?.()
@@ -242,20 +229,10 @@ export default function StoryStyle({
     if (!isLastItem) {
       setCurrentIndex(prev => prev + 1)
       resetProgress()
-    } else if (isPhonePreview) {
-      // En mode preview, on quitte la story à la fin
-      onComplete?.()
     } else {
-      // En mode normal, on passe à la story suivante
-      if (isLastStory) {
-        onComplete?.()
-      } else {
-        onNextStory?.()
-        setCurrentIndex(0)
-        resetProgress()
-      }
+      goToNextStory()
     }
-  }, [isLastItem, isPhonePreview, isLastStory, onNextStory, onComplete, resetProgress])
+  }, [isLastItem, goToNextStory, resetProgress])
 
   // Effet pour réinitialiser l'état lors du changement de story
   useEffect(() => {
@@ -298,13 +275,7 @@ export default function StoryStyle({
 
       if (newProgress >= PROGRESS_BAR_WIDTH) {
         clearInterval(timer)
-        if (isPhonePreview && isLastItem) {
-          onComplete?.()
-        } else if (isLastItem && isLastStory) {
-          onComplete?.()
-        } else {
-          goToNextFrame()
-        }
+        goToNextFrame()
       }
     }, 16) // 60fps pour une animation plus fluide
 
@@ -314,7 +285,7 @@ export default function StoryStyle({
         clearInterval(timer)
       }
     }
-  }, [currentItem, isPaused, isMuted, progress, isLastItem, isLastStory, isPhonePreview, onComplete, goToNextFrame])
+  }, [currentItem, isPaused, isMuted, progress, goToNextFrame])
 
   if (!mounted || !currentItem) return null
 
@@ -322,16 +293,16 @@ export default function StoryStyle({
     <div className="relative w-full max-w-[800px] mx-auto flex items-center justify-center">
       {/* Left Navigation */}
       {!hideNavigation && !isModal && (
-        <div className={`absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
+        <div className="absolute -left-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
           {/* Story navigation */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               goToPrevStory()
             }}
-            disabled={isFirstStory || isPhonePreview}
+            disabled={isFirstStory}
             className={`text-white transition-all ${
-              isFirstStory || isPhonePreview
+              isFirstStory
                 ? 'opacity-30 cursor-not-allowed' 
                 : 'hover:text-white/90'
             }`}
@@ -348,9 +319,9 @@ export default function StoryStyle({
               e.stopPropagation()
               goToPrevFrame()
             }}
-            disabled={currentIndex === 0 && isFirstStory || isPhonePreview}
+            disabled={currentIndex === 0 && isFirstStory}
             className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-              currentIndex === 0 && isFirstStory || isPhonePreview
+              currentIndex === 0 && isFirstStory
                 ? 'opacity-30 cursor-not-allowed' 
                 : 'hover:bg-white/90'
             }`}
@@ -377,7 +348,7 @@ export default function StoryStyle({
           <div className="absolute top-0.5 left-0 right-0 p-2 flex gap-1 z-20">
             {items?.map((item, index) => (
               <div
-                key={item.id}
+                key={item.url}
                 className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
               >
                 <div
@@ -461,10 +432,8 @@ export default function StoryStyle({
           <div className="absolute top-6 right-4 flex flex-col gap-4 z-50">
             <button 
               onClick={(e) => {
-                console.log('🔴 Bouton Close cliqué')
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('🔴 Appel de onComplete depuis le bouton Close')
                 onComplete?.()
               }}
               className="p-2.5 rounded-full bg-black/20 backdrop-blur-sm text-white hover:bg-black/30 transition-colors"
@@ -474,7 +443,6 @@ export default function StoryStyle({
 
             <button 
               onClick={(e) => {
-                console.log('⏯️ Bouton Play/Pause cliqué')
                 e.preventDefault()
                 e.stopPropagation()
                 if (currentItem?.type === 'video' && videoRef.current) {
@@ -493,7 +461,6 @@ export default function StoryStyle({
             
             <button 
               onClick={(e) => {
-                console.log('🔊 Bouton Mute cliqué')
                 e.preventDefault()
                 e.stopPropagation()
                 setIsMuted(!isMuted)
@@ -505,57 +472,39 @@ export default function StoryStyle({
           </div>
 
           {/* Navigation Controls */}
-          {!isPhonePreview && (
-            <>
-              <div 
-                className="absolute left-0 top-0 bottom-0 w-1/3 z-30"
-                onClick={(e) => {
-                  console.log('⬅️ Zone gauche cliquée')
-                  e.preventDefault()
-                  e.stopPropagation()
-                  goToPrevFrame()
-                }}
-              />
-              <div 
-                className="absolute right-0 top-0 bottom-0 w-1/3 z-30"
-                onClick={(e) => {
-                  console.log('➡️ Zone droite cliquée')
-                  e.preventDefault()
-                  e.stopPropagation()
-                  goToNextFrame()
-                }}
-              />
-            </>
-          )}
-
-          {/* Phone Preview Click Handler */}
-          {isPhonePreview && (
+          <>
             <div 
-              className="absolute inset-0 z-30"
+              className="absolute left-0 top-0 bottom-0 w-1/3 z-30"
               onClick={(e) => {
-                console.log('📱 Zone preview cliquée')
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('📱 Appel de onComplete depuis la zone preview')
-                onComplete?.()
+                goToPrevFrame()
               }}
             />
-          )}
+            <div 
+              className="absolute right-0 top-0 bottom-0 w-1/3 z-30"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                goToNextFrame()
+              }}
+            />
+          </>
         </div>
       </div>
 
       {/* Right Navigation */}
       {!hideNavigation && !isModal && (
-        <div className={`absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30 ${isPhonePreview ? 'opacity-30 pointer-events-none' : ''}`}>
+        <div className="absolute -right-32 top-1/2 -translate-y-1/2 flex items-center gap-4 z-30">
           {/* Frame navigation */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               goToNextFrame()
             }}
-            disabled={isLastItem && isLastStory || isPhonePreview}
+            disabled={isLastItem && isLastStory}
             className={`p-2 rounded-full bg-white text-gray-900 transition-all ${
-              isLastItem && isLastStory || isPhonePreview
+              isLastItem && isLastStory
                 ? 'opacity-30 cursor-not-allowed' 
                 : 'hover:bg-white/90'
             }`}
@@ -569,9 +518,9 @@ export default function StoryStyle({
               e.stopPropagation()
               goToNextStory()
             }}
-            disabled={isLastStory || isPhonePreview}
+            disabled={isLastStory}
             className={`text-white transition-all ${
-              isLastStory || isPhonePreview
+              isLastStory
                 ? 'opacity-30 cursor-not-allowed' 
                 : 'hover:text-white/90'
             }`}
@@ -596,7 +545,6 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
   const checkOverflow = useCallback(() => {
     const container = containerRef.current
     if (container) {
-      const hasOverflow = container.scrollWidth > container.clientWidth
       setShowLeftArrow(container.scrollLeft > 20)
       setShowRightArrow(
         container.scrollLeft < (container.scrollWidth - container.clientWidth - 20)
@@ -675,7 +623,7 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
           </div>
         </div>
 
-        {/* Boutons de navigation avec transition douce */}
+        {/* Boutons de navigation */}
         <div 
           className={`absolute left-2 top-1/2 -translate-y-1/2 z-30 transition-all duration-500 ${
             showLeftArrow 
@@ -710,7 +658,6 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
   )
 }
 
-// Nouveau composant wrapper pour la gestion des stories
 export function StoryViewer({
   stories,
   onClose,
@@ -789,4 +736,4 @@ export function StoryViewer({
       </div>
     </div>
   )
-}
+} 

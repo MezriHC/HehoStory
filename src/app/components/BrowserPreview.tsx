@@ -16,7 +16,6 @@ interface BrowserPreviewProps {
     format: WidgetFormat
     story_ids: string[]
     stories?: Story[]
-    border_color?: string
   }
   stories?: Story[]
   borderColor?: string
@@ -42,13 +41,12 @@ function ProductSkeleton({
   onStorySelect,
   onClose
 }: { 
-  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[]; border_color?: string }
+  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
   onClose: () => void
 }) {
-  console.log('🎨 ProductSkeleton - Widget border_color:', widget.border_color)
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
 
@@ -149,7 +147,6 @@ function ProductSkeleton({
                     onStorySelect={onStorySelect}
                     alignment={widget.format.alignment}
                     className="w-full"
-                    borderColor={widget.border_color}
                   />
                 </div>
               </div>
@@ -208,13 +205,12 @@ function HomeSkeleton({
   onStorySelect,
   onClose
 }: { 
-  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[]; border_color?: string }
+  widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
   onClose: () => void
 }) {
-  console.log('🎨 HomeSkeleton - Widget border_color:', widget.border_color)
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
 
@@ -316,7 +312,6 @@ function HomeSkeleton({
                 onStorySelect={onStorySelect}
                 alignment={widget.format.alignment}
                 className="w-full"
-                borderColor={widget.border_color}
               />
             </div>
           </div>
@@ -378,9 +373,6 @@ function HomeSkeleton({
 }
 
 export default function BrowserPreview({ isOpen, onClose, widget, stories, borderColor }: BrowserPreviewProps) {
-  console.log('🎨 BrowserPreview - Props borderColor:', borderColor)
-  console.log('🎨 BrowserPreview - Widget border_color:', widget?.border_color)
-  
   const [mounted, setMounted] = useState(false)
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'home' | 'product'>('home')

@@ -1,8 +1,9 @@
 {
+  "/page": "app/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/story/page": "app/story/page.js",
-  "/_not-found/page": "app/_not-found/page.js",
+  "/widget/page": "app/widget/page.js",
   "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
-  "/page": "app/page.js",
-  "/widget/page": "app/widget/page.js"
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/auth/callback/route": "app/auth/callback/route.js"
 }

@@ -11,7 +11,6 @@ import StoryStyle from '@/components/StoryStyle'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 import BrowserPreview from '@/app/components/BrowserPreview'
-import ColorPicker from '@/app/components/widgets/ColorPicker'
 
 interface StorySelector {
   stories: Story[]
@@ -181,7 +180,7 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
                 variant={getVariant()} 
                 size="md"
                 story={story}
-                borderColor={borderColor}
+                className={borderColor ? `border-2 ${borderColor}` : ''}
               />
             ) : (
               getEmptyPreview()
@@ -197,20 +196,19 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const router = useRouter()
   const { userId, loading: authLoading, supabase: authClient } = useAuth()
   const [step, setStep] = useState(1)
-  const [format, setFormat] = useState<WidgetFormat | null>(
-    initialWidget ? (
-      typeof initialWidget.format === 'string' 
-        ? JSON.parse(initialWidget.format)
-        : initialWidget.format
-    ) : null
-  )
-  const [selectedStories, setSelectedStories] = useState<string[]>(
+  const [format, setFormat] = useState<WidgetFormat | null>(() => {
+    if (!initialWidget) return null
+    return typeof initialWidget.format === 'string' 
+      ? JSON.parse(initialWidget.format) 
+      : initialWidget.format
+  })
+  const [selectedStories, setSelectedStories] = useState<string[]>(() => 
     initialWidget?.story_ids || []
   )
-  const [name, setName] = useState(initialWidget?.name || '')
+  const [name, setName] = useState(() => initialWidget?.name || '')
   const [stories, setStories] = useState<Story[]>([])
   const [showPreview, setShowPreview] = useState(false)
-  const [borderColor, setBorderColor] = useState(initialWidget?.border_color || '#000000')
+  const [widgetBorderColor, setWidgetBorderColor] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -232,6 +230,17 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
 
         if (storiesError) throw storiesError
         setStories(storiesData || [])
+
+        // Charger les préférences
+        const { data: prefsData, error: prefsError } = await authClient
+          .from('preferences')
+          .select('widget_border_color')
+          .eq('user_id', userId)
+          .single()
+
+        if (!prefsError && prefsData) {
+          setWidgetBorderColor(prefsData.widget_border_color)
+        }
       } catch (error) {
         console.error('Error loading data:', error)
       } finally {
@@ -292,6 +301,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     }
 
     try {
+      // Get the first story in the selected order
       const firstStory = selectedStoriesData[0]
       if (!firstStory) {
         throw new Error('No stories selected')
@@ -307,8 +317,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
         story_ids: selectedStories,
         settings: initialWidget?.settings || {},
         published: true,
-        author_id: userId,
-        border_color: borderColor
+        author_id: userId
       }
 
       console.log('Creating widget with data:', widget)
@@ -374,8 +383,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
     id: 'preview',
     created_at: new Date().toISOString(),
     published: true,
-    author_id: userId || '',
-    border_color: borderColor
+    author_id: userId || ''
   } : null
 
   // Show loading state while fetching data
@@ -472,36 +480,20 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
                 {initialWidget ? 'Edit name & arrangement' : 'Name & arrange'}
               </h2>
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-8">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Widget name
-                    </label>
-                    <div className="mt-2">
-                      <input
-                        type="text"
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="block w-full h-10 px-4 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
-                        placeholder="Enter widget name"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Border color
-                    </label>
-                    <div className="mt-2">
-                      <ColorPicker
-                        value={borderColor}
-                        onChange={setBorderColor}
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    Widget name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="block w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+                    placeholder="Enter widget name"
+                  />
                 </div>
-
+                
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-4">Arrange stories</h3>
                   <DragDropContext onDragEnd={handleDragEnd}>
@@ -525,7 +517,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
                                 onRemove={(id) => {
                                   setSelectedStories(prev => prev.filter(sid => sid !== id))
                                 }}
-                                borderColor={borderColor}
+                                borderColor={widgetBorderColor}
                               />
                             )
                           })}

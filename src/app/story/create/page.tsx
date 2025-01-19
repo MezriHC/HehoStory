@@ -577,13 +577,13 @@ function StoryEditor() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
             <Link
               href="/story"
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 hover:shadow"
+              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to stories
@@ -592,7 +592,7 @@ function StoryEditor() {
           
           <div className="flex items-center gap-4">
             <button
-              className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-md hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+              className="inline-flex items-center justify-center h-10 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
               disabled={!title.trim() || mediaItems.length === 0 || (!thumbnail.file && !thumbnail.url)}
             >
@@ -603,39 +603,39 @@ function StoryEditor() {
         </div>
 
         <div className="grid grid-cols-[1fr,350px] gap-8">
-          <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="border-b border-gray-200 px-8 py-6">
+          <div className="space-y-8">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+              <div className="border-b border-gray-200 px-8 py-4">
                 <input
                   type="text"
                   placeholder="Enter story title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full text-2xl font-semibold text-gray-900 bg-transparent border-0 outline-none focus:ring-0 p-0 placeholder:text-gray-400"
+                  className="w-full text-xl font-semibold text-gray-900 bg-transparent border-0 outline-none focus:ring-0 p-0 placeholder:text-gray-400"
                 />
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 mt-1">
                   Upload and organize your media to create an engaging story for your e-commerce site.
                 </p>
               </div>
 
               {/* Thumbnail Section */}
-              <div className="border-b border-gray-200 px-8 py-6 bg-gray-50">
-                <h3 className="text-base font-medium text-gray-900 mb-4">Story Thumbnail *</h3>
+              <div className="border-b border-gray-200 px-8 py-4">
+                <h3 className="text-base font-medium text-gray-900 mb-3">Story Thumbnail *</h3>
                 <div className="flex items-start space-x-6">
                   <div className="relative group">
                     {thumbnail.url ? (
-                      <div className="relative w-32 h-32 rounded-lg overflow-hidden shadow-md group">
+                      <div className="relative w-32 h-32">
                         <img
                           src={thumbnail.url}
                           alt="Thumbnail"
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          className="w-full h-full object-cover rounded-lg"
                         />
                         <button
                           onClick={() => {
                             if (thumbnail.url) URL.revokeObjectURL(thumbnail.url)
                             setThumbnail({ file: null, url: null })
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -645,10 +645,10 @@ function StoryEditor() {
                     ) : (
                       <div
                         onClick={() => thumbnailInputRef.current?.click()}
-                        className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                        className="w-32 h-32 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-300"
                       >
-                        <Upload className="w-8 h-8 text-gray-400 group-hover:text-blue-500" />
-                        <span className="text-sm text-gray-500 mt-2 group-hover:text-blue-600">Add thumbnail</span>
+                        <Upload className="w-8 h-8 text-gray-400" />
+                        <span className="text-sm text-gray-500 mt-2">Add thumbnail</span>
                       </div>
                     )}
                     <input
@@ -660,10 +660,10 @@ function StoryEditor() {
                     />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-500">
                       This image will be used as the thumbnail for your story in lists and previews.
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-gray-500 mt-1">
                       Recommended format: JPG, PNG. Maximum size: 5 MB
                     </p>
                   </div>
@@ -671,11 +671,11 @@ function StoryEditor() {
               </div>
 
               {/* Profile Section */}
-              <div className="border-b border-gray-200 px-8 py-6">
-                <h3 className="text-base font-medium text-gray-900 mb-4">Story Profile</h3>
+              <div className="border-b border-gray-200 px-8 py-4">
+                <h3 className="text-base font-medium text-gray-900 mb-3">Story Profile</h3>
                 <div className="flex items-start space-x-6">
                   <div className="relative group">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                       {profileImage ? (
                         <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
@@ -702,26 +702,26 @@ function StoryEditor() {
                       placeholder="Enter profile name or story purpose..."
                       value={profileName}
                       onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full text-sm text-gray-900 bg-white border border-gray-200 rounded-lg px-4 h-10 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+                      className="w-full text-sm text-gray-900 bg-transparent border border-gray-200 rounded-lg px-3 h-9 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-1">
                       This will appear at the top of your story.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-8">
+              <div className="p-6">
                 {mediaItems.length === 0 ? (
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-200 rounded-xl p-8 text-center transition-all hover:border-blue-300">
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 text-center transition-all hover:border-gray-300">
                     <div className="max-w-sm mx-auto">
                       <div className="p-4 rounded-full bg-white border border-gray-200 mb-4 shadow-sm mx-auto w-fit">
                         <Upload className="w-6 h-6 text-gray-900" />
                       </div>
-                      <p className="text-lg font-medium text-gray-900 mb-2">
+                      <p className="text-base font-medium text-gray-900 mb-2">
                         No media added yet
                       </p>
-                      <p className="text-sm text-gray-600 mb-6">
+                      <p className="text-sm text-gray-500 mb-4">
                         Start by adding images or videos to create your story slides
                       </p>
                       <input

@@ -218,6 +218,13 @@ export default function Header() {
                   </div>
                 )}
                 <div className="py-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Configuration du profil
+                  </Link>
                   <button
                     onClick={handleSignOut}
                     className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50"

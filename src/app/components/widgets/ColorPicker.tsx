@@ -1,51 +1,54 @@
-'use client'
-
-import { HexColorPicker } from "react-colorful"
-import { useState } from "react"
-import { Paintbrush } from "lucide-react"
-
 interface ColorPickerProps {
   value: string
   onChange: (color: string) => void
+  label?: string
+  description?: string
 }
 
-export default function ColorPicker({ value, onChange }: ColorPickerProps) {
-  const [isOpen, setIsOpen] = useState(false)
-
+export default function ColorPicker({ value, onChange, label, description }: ColorPickerProps) {
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 w-full h-10 px-4 text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-      >
-        <div
-          className="w-4 h-4 rounded-full border border-gray-200"
-          style={{ backgroundColor: value }}
-        />
-        <span className="text-sm text-gray-600 flex-1 text-left truncate">
-          {value}
-        </span>
-        <Paintbrush className="w-4 h-4 text-gray-400" />
-      </button>
-
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute z-50 mt-2 p-3 bg-white rounded-lg shadow-lg border border-gray-200">
-            <HexColorPicker color={value} onChange={onChange} />
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="mt-3 w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-gray-400"
-            />
-          </div>
-        </>
+    <div className="space-y-4">
+      {label && (
+        <label className="block text-sm font-medium text-gray-700">
+          {label}
+          {description && (
+            <span className="block text-sm font-normal text-gray-500 mt-1">
+              {description}
+            </span>
+          )}
+        </label>
       )}
+
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-20 h-20 cursor-pointer rounded-xl border-2 border-gray-200 p-1 bg-white"
+          />
+          <div 
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            style={{ 
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+            }} 
+          />
+        </div>
+        <div className="flex-grow">
+          <input
+            type="text"
+            value={value.toUpperCase()}
+            onChange={(e) => {
+              const newValue = e.target.value
+              if (newValue.match(/^#[0-9A-Fa-f]{0,6}$/)) {
+                onChange(newValue)
+              }
+            }}
+            placeholder="#000000"
+            className="w-full h-12 px-4 text-base text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-colors uppercase font-mono"
+          />
+        </div>
+      </div>
     </div>
   )
 } 
