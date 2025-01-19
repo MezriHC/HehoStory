@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { createClient } from '@supabase/supabase-js';
 import { Story, Size, Variant, Alignment } from './types';
 import { StoryStyle, StoryCarousel, StoryViewer } from './components/EmbedStoryStyle';
 import './styles.css';
+
+console.log('🎬 Démarrage du script HehoStory');
 
 // Types pour la base de données
 interface DBStory {
@@ -12,7 +13,6 @@ interface DBStory {
   thumbnail: string;
   profile_image?: string;
   profile_name?: string;
-  published: boolean;
 }
 
 interface DBWidget {
@@ -21,17 +21,17 @@ interface DBWidget {
   story_ids: string[];
   settings: string;
   border_color?: string;
-  published: boolean;
 }
 
-// Types pour les composants
+interface WidgetFormat {
+  type: Variant;
+  size: Size;
+  alignment: Alignment;
+}
+
 interface Widget {
   id: string;
-  format: {
-    type: Variant;
-    size: Size;
-    alignment: Alignment;
-  };
+  format: WidgetFormat;
   story_ids: string[];
   settings: {
     autoplay?: boolean;
@@ -41,109 +41,120 @@ interface Widget {
 
 // Point d'entrée du script d'embed HehoStory
 (() => {
-  // Configuration Supabase
-  const SUPABASE_URL = 'https://moayozcwypbsmnnbtkdv.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vYXlvemN3eXBic21ubmJ0a2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY2MTQ1OTIsImV4cCI6MjA1MjE5MDU5Mn0.aiV5-q7F-5z-CIs8pVsTotAsyziGyP5tVpaydYgYZs8';
+  console.log('🏁 Initialisation HehoStory');
   
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false
-    },
-    global: {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      }
-    }
-  });
-
+  // Configuration de l'API
+  const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3004/api/embed'
+    : `${process.env.NEXT_PUBLIC_PROD_URL}/api/embed`;
+  
   // Fonction pour charger les données d'un widget
   const loadWidgetData = async (widgetId: string): Promise<Widget | null> => {
     try {
-      const { data: widget, error } = await supabase
-        .from('widgets')
-        .select('*')
-        .eq('id', widgetId)
-        .eq('published', true)
-        .single();
+      console.log('🔍 Chargement du widget:', widgetId);
+      
+      const response = await fetch(`${API_BASE_URL}/widget?id=${widgetId}`);
+      const widget = await response.json();
 
-      if (error || !widget) {
-        console.error('Error loading widget:', error);
+      if (!response.ok) {
+        console.error('❌ Erreur chargement widget:', widget.error);
         return null;
       }
 
+      console.log('📦 Données brutes du widget:', widget);
+
       // Parse le format du widget
-      let format;
+      let format: WidgetFormat;
       try {
         format = typeof widget.format === 'string' 
           ? JSON.parse(widget.format)
           : widget.format;
+        console.log('📐 Format parsé:', format);
       } catch (e) {
-        console.error('Error parsing widget format:', e);
+        console.error('❌ Erreur parsing format:', e);
         return null;
       }
 
-      return {
+      // Valeurs par défaut pour le format
+      const defaultFormat: WidgetFormat = {
+        type: 'bubble',
+        size: 'M',
+        alignment: 'center'
+      };
+
+      const processedWidget = {
         id: widget.id,
         format: {
-          type: format.type,
-          size: format.size,
-          alignment: format.alignment
+          type: format.type || defaultFormat.type,
+          size: format.size || defaultFormat.size,
+          alignment: format.alignment || defaultFormat.alignment
         },
-        story_ids: widget.story_ids,
+        story_ids: Array.isArray(widget.story_ids) ? widget.story_ids : [],
         settings: typeof widget.settings === 'string' 
           ? JSON.parse(widget.settings)
-          : widget.settings
+          : widget.settings || {}
       };
+
+      console.log('✅ Widget traité:', processedWidget);
+      return processedWidget;
+
     } catch (error) {
-      console.error('Unexpected error loading widget:', error);
+      console.error('❌ Erreur inattendue widget:', error);
       return null;
     }
   };
 
   // Fonction pour charger les stories
   const loadStories = async (storyIds: string[]): Promise<Story[]> => {
+    if (!storyIds.length) {
+      console.log('ℹ️ Aucun story_id fourni');
+      return [];
+    }
+    
+    console.log('🔍 Chargement des stories:', storyIds);
+    
     try {
-      const { data: stories, error } = await supabase
-        .from('stories')
-        .select('id, content, thumbnail, profile_image, profile_name')
-        .in('id', storyIds)
-        .eq('published', true);
+      const response = await fetch(`${API_BASE_URL}/stories?ids=${storyIds.join(',')}`);
+      const stories = await response.json();
 
-      if (error || !stories) {
-        console.error('Error loading stories:', error);
+      if (!response.ok) {
+        console.error('❌ Erreur chargement stories:', stories.error);
         return [];
       }
 
-      return stories.map(story => ({
+      console.log('📦 Stories brutes trouvées:', stories.map((s: DBStory) => s.id));
+
+      const orderedStories = stories.map((story: DBStory) => ({
         id: story.id,
         content: story.content,
         thumbnail: story.thumbnail,
-        profile_image: story.profile_image,
-        profile_name: story.profile_name
+        profile_image: story.profile_image || undefined,
+        profile_name: story.profile_name || undefined
       }));
+
+      console.log('✅ Stories traitées:', orderedStories.map((s: Story) => s.id));
+      return orderedStories;
+
     } catch (error) {
-      console.error('Unexpected error loading stories:', error);
+      console.error('❌ Erreur inattendue stories:', error);
       return [];
     }
   };
 
   // Fonction d'initialisation du widget
   const initWidget = async (element: HTMLElement, widgetId: string) => {
+    console.log('🚀 Initialisation du widget:', widgetId);
+    
     try {
       const widget = await loadWidgetData(widgetId);
       if (!widget) {
-        console.error('Widget not found or not published:', widgetId);
+        console.error('❌ Widget non trouvé:', widgetId);
         return;
       }
 
+      console.log('📱 Chargement des stories pour le widget:', widget.story_ids);
       const stories = await loadStories(widget.story_ids);
-      if (!stories.length) {
-        console.error('No published stories found for widget:', widgetId);
-        return;
-      }
+      console.log('✨ Stories chargées:', stories.length);
 
       // Render le widget avec React
       ReactDOM.render(
@@ -153,13 +164,14 @@ interface Widget {
           size: widget.format.size,
           alignment: widget.format.alignment,
           onStorySelect: (story) => {
+            console.log('👆 Story sélectionnée:', story.id);
             ReactDOM.render(
               React.createElement(StoryViewer, {
                 stories,
                 selectedStoryId: story.id,
                 onClose: () => {
+                  console.log('🔚 Fermeture du viewer');
                   ReactDOM.unmountComponentAtNode(element);
-                  // Re-render le carousel
                   initWidget(element, widgetId);
                 }
               }),
@@ -170,14 +182,17 @@ interface Widget {
         element
       );
     } catch (error) {
-      console.error('Error initializing widget:', error);
+      console.error('❌ Erreur initialisation widget:', error);
     }
   };
 
   // Initialisation de tous les widgets sur la page
   const widgets = document.querySelectorAll('[data-hehostory-widget]');
+  console.log('🔎 Widgets trouvés:', widgets.length);
+  
   widgets.forEach(element => {
     const widgetId = element.getAttribute('data-hehostory-widget');
+    console.log('📍 Widget ID trouvé:', widgetId);
     if (widgetId) {
       initWidget(element as HTMLElement, widgetId);
     }
