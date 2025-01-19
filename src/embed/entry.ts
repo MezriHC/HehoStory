@@ -5,6 +5,8 @@ import { StoryStyle, StoryCarousel, StoryViewer } from './components/EmbedStoryS
 import './styles.css';
 
 console.log('🎬 Démarrage du script HehoStory');
+console.log('🔄 Version du build:', new Date().toISOString());
+console.log('🔍 DEBUG MODE ACTIVÉ - v2');
 
 // Types pour la base de données
 interface DBStory {
@@ -144,6 +146,7 @@ interface Widget {
   // Fonction d'initialisation du widget
   const initWidget = async (element: HTMLElement, widgetId: string) => {
     console.log('🚀 Initialisation du widget:', widgetId);
+    console.log('📍 Element DOM cible:', element);
     
     try {
       const widget = await loadWidgetData(widgetId);
@@ -155,8 +158,21 @@ interface Widget {
       console.log('📱 Chargement des stories pour le widget:', widget.story_ids);
       const stories = await loadStories(widget.story_ids);
       console.log('✨ Stories chargées:', stories.length);
+      console.log('📊 Détails des stories:', stories.map(s => ({ id: s.id, thumbnail: s.thumbnail })));
+
+      // Créer un conteneur pour le viewer avec debug
+      let viewerContainer = document.getElementById('hehostory-viewer-container');
+      console.log('🔍 Recherche du conteneur existant:', viewerContainer ? 'trouvé' : 'non trouvé');
+      
+      if (!viewerContainer) {
+        viewerContainer = document.createElement('div');
+        viewerContainer.id = 'hehostory-viewer-container';
+        document.body.appendChild(viewerContainer);
+        console.log('✨ Nouveau conteneur créé et ajouté au DOM');
+      }
 
       // Render le widget avec React
+      console.log('🎨 Début du rendu React du carousel');
       ReactDOM.render(
         React.createElement(StoryCarousel, {
           stories,
@@ -165,24 +181,41 @@ interface Widget {
           alignment: widget.format.alignment,
           onStorySelect: (story) => {
             console.log('👆 Story sélectionnée:', story.id);
-            ReactDOM.render(
-              React.createElement(StoryViewer, {
-                stories,
-                selectedStoryId: story.id,
-                onClose: () => {
-                  console.log('🔚 Fermeture du viewer');
-                  ReactDOM.unmountComponentAtNode(element);
-                  initWidget(element, widgetId);
-                }
-              }),
-              element
-            );
+            console.log('📐 Format du widget:', widget.format);
+            console.log('🎯 Conteneur du viewer:', viewerContainer);
+            
+            // Utiliser createPortal via StoryViewer pour afficher la story
+            if (viewerContainer) {
+              console.log('🎭 Montage du viewer dans le conteneur:', viewerContainer.id);
+              ReactDOM.render(
+                React.createElement(StoryViewer, {
+                  stories,
+                  selectedStoryId: story.id,
+                  onClose: () => {
+                    if (viewerContainer) {
+                      console.log('🔚 Fermeture du viewer');
+                      console.log('🧹 Nettoyage du conteneur:', viewerContainer.id);
+                      ReactDOM.unmountComponentAtNode(viewerContainer);
+                      console.log('✅ Viewer démonté avec succès');
+                    } else {
+                      console.error('❌ Conteneur du viewer non trouvé lors de la fermeture');
+                    }
+                  }
+                }),
+                viewerContainer
+              );
+              console.log('✅ Viewer monté avec succès');
+            } else {
+              console.error('❌ Conteneur du viewer non trouvé');
+            }
           }
         }),
         element
       );
-    } catch (error) {
+      console.log('✅ Carousel rendu avec succès');
+    } catch (error: any) {
       console.error('❌ Erreur initialisation widget:', error);
+      console.error('📑 Stack trace:', error.stack);
     }
   };
 

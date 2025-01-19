@@ -1,6 +1,7 @@
 import { User, Pause, Play, Volume2, VolumeX, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Story, MediaItem, Size, Variant, Alignment } from '../types'
+import { createPortal } from 'react-dom'
 
 interface StoryStyleProps {
   variant: Variant
@@ -669,50 +670,71 @@ export function StoryViewer({
   selectedStoryId?: string
   className?: string
 }) {
+  console.log('🎭 Initialisation StoryViewer', { selectedStoryId, storiesCount: stories.length });
+  
   const [selectedStory, setSelectedStory] = useState<Story | null>(
     selectedStoryId ? stories.find(s => s.id === selectedStoryId) || stories[0] : stories[0]
   )
+  console.log('📱 Story sélectionnée:', selectedStory?.id);
+
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(
     selectedStoryId ? stories.findIndex(s => s.id === selectedStoryId) : 0
   )
+  console.log('📍 Index de la story:', selectedStoryIndex);
 
   const handleNextStory = useCallback(() => {
+    console.log('➡️ Navigation vers la story suivante');
     if (selectedStoryIndex < stories.length - 1) {
       setSelectedStory(stories[selectedStoryIndex + 1])
       setSelectedStoryIndex(prev => prev + 1)
+      console.log('✅ Nouvelle story chargée');
     } else {
+      console.log('🔚 Dernière story atteinte, fermeture');
       onClose()
     }
   }, [selectedStoryIndex, stories, onClose])
 
   const handlePrevStory = useCallback(() => {
+    console.log('⬅️ Navigation vers la story précédente');
     if (selectedStoryIndex > 0) {
       setSelectedStory(stories[selectedStoryIndex - 1])
       setSelectedStoryIndex(prev => prev - 1)
+      console.log('✅ Story précédente chargée');
     } else {
+      console.log('🔚 Première story atteinte, fermeture');
       onClose()
     }
   }, [selectedStoryIndex, stories, onClose])
 
   const handleBackdropClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    // Vérifier que le clic est bien sur le backdrop
+    console.log('🖱️ Clic sur le backdrop');
     const target = e.target as HTMLElement
     if (target.classList.contains('story-viewer-backdrop')) {
+      console.log('✅ Clic confirmé sur le backdrop, fermeture');
       e.preventDefault()
       e.stopPropagation()
       onClose()
     }
   }, [onClose])
 
-  if (!selectedStory) return null
+  if (!selectedStory) {
+    console.log('❌ Pas de story sélectionnée, annulation du rendu');
+    return null;
+  }
 
-  return (
-    <div 
-      className="fixed inset-0 z-[9999] story-viewer-backdrop" 
-      onClick={handleBackdropClick}
-      onTouchEnd={handleBackdropClick}
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-    >
+  console.log('🎨 Rendu du viewer avec la story:', selectedStory.id);
+
+  const viewer = (
+    <div className="fixed inset-0 story-viewer-root" style={{ zIndex: 99999 }}>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 story-viewer-backdrop"
+        onClick={handleBackdropClick}
+        onTouchEnd={handleBackdropClick}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      />
+
+      {/* Contenu */}
       <div 
         className={`relative w-full h-full max-w-[400px] flex items-center justify-center mx-auto p-3 ${className}`}
         onClick={e => e.stopPropagation()}
@@ -736,4 +758,6 @@ export function StoryViewer({
       </div>
     </div>
   )
+
+  return createPortal(viewer, document.body)
 } 

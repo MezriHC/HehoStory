@@ -51,6 +51,11 @@ module.exports = {
         format: {
           comments: false,
         },
+        compress: {
+          drop_console: false,
+          pure_funcs: []
+        },
+        mangle: true
       },
       extractComments: false,
     })]
