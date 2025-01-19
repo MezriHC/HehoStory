@@ -46,7 +46,7 @@ interface Widget {
   // Configuration de l'API
   const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3004/api/embed'
-    : `${process.env.NEXT_PUBLIC_PROD_URL}/api/embed`;
+    : 'https://hehostory.vercel.app/api/embed';
   
   // Fonction pour charger les données d'un widget
   const loadWidgetData = async (widgetId: string): Promise<Widget | null> => {

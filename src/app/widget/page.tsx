@@ -164,14 +164,8 @@ function WidgetCard({ widget, onDelete, onPreview, selected, onSelect }: WidgetC
       <CodeModal
         isOpen={showCode}
         onClose={() => setShowCode(false)}
-        code={`<!-- Hehostory Widget -->
-<script>
-  window.HEHOSTORY_WIDGET = {
-    id: "${widget.id}",
-    format: "${widget.format}"
-  }
-</script>
-<script async src="https://cdn.hehostory.com/widget.js"></script>`}
+        code={`<div data-hehostory-widget="${widget.id}"></div>
+<script src="https://hehostory.vercel.app/dist/embed.min.js"></script>`}
       />
 
       <SettingsModal

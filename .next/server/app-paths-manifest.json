@@ -1,4 +1,4 @@
 {
-  "/api/embed/widget/route": "app/api/embed/widget/route.js",
-  "/api/embed/stories/route": "app/api/embed/stories/route.js"
+  "/story/page": "app/story/page.js",
+  "/widget/page": "app/widget/page.js"
 }
