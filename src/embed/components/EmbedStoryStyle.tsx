@@ -670,59 +670,42 @@ export function StoryViewer({
   selectedStoryId?: string
   className?: string
 }) {
-  console.log('🎭 Initialisation StoryViewer', { selectedStoryId, storiesCount: stories.length });
-  
   const [selectedStory, setSelectedStory] = useState<Story | null>(
     selectedStoryId ? stories.find(s => s.id === selectedStoryId) || stories[0] : stories[0]
   )
-  console.log('📱 Story sélectionnée:', selectedStory?.id);
 
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(
     selectedStoryId ? stories.findIndex(s => s.id === selectedStoryId) : 0
   )
-  console.log('📍 Index de la story:', selectedStoryIndex);
 
   const handleNextStory = useCallback(() => {
-    console.log('➡️ Navigation vers la story suivante');
     if (selectedStoryIndex < stories.length - 1) {
       setSelectedStory(stories[selectedStoryIndex + 1])
       setSelectedStoryIndex(prev => prev + 1)
-      console.log('✅ Nouvelle story chargée');
     } else {
-      console.log('🔚 Dernière story atteinte, fermeture');
       onClose()
     }
   }, [selectedStoryIndex, stories, onClose])
 
   const handlePrevStory = useCallback(() => {
-    console.log('⬅️ Navigation vers la story précédente');
     if (selectedStoryIndex > 0) {
       setSelectedStory(stories[selectedStoryIndex - 1])
       setSelectedStoryIndex(prev => prev - 1)
-      console.log('✅ Story précédente chargée');
     } else {
-      console.log('🔚 Première story atteinte, fermeture');
       onClose()
     }
   }, [selectedStoryIndex, stories, onClose])
 
   const handleBackdropClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    console.log('🖱️ Clic sur le backdrop');
     const target = e.target as HTMLElement
     if (target.classList.contains('story-viewer-backdrop')) {
-      console.log('✅ Clic confirmé sur le backdrop, fermeture');
       e.preventDefault()
       e.stopPropagation()
       onClose()
     }
   }, [onClose])
 
-  if (!selectedStory) {
-    console.log('❌ Pas de story sélectionnée, annulation du rendu');
-    return null;
-  }
-
-  console.log('🎨 Rendu du viewer avec la story:', selectedStory.id);
+  if (!selectedStory) return null
 
   const viewer = (
     <div className="fixed inset-0 story-viewer-root" style={{ zIndex: 99999 }}>
