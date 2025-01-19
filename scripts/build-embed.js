@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Chemins des fichiers
-const DIST_DIR = path.resolve(__dirname, '../dist');
+const DIST_DIR = path.resolve(__dirname, '../public/dist');
 const JS_FILE = path.resolve(DIST_DIR, 'embed.min.js');
 const FINAL_FILE = path.resolve(DIST_DIR, 'embed.min.js');
 
