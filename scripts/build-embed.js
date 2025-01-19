@@ -15,9 +15,13 @@ async function build() {
       fs.mkdirSync(DIST_DIR, { recursive: true });
     }
 
+    // Déterminer l'environnement
+    const env = process.env.NODE_ENV || 'development';
+    console.log(`🔧 Building for ${env}...`);
+
     // 2. Exécuter webpack
     console.log('🚀 Building with webpack...');
-    execSync('webpack --config webpack.embed.config.js', { stdio: 'inherit' });
+    execSync(`cross-env NODE_ENV=${env} webpack --config webpack.embed.config.js`, { stdio: 'inherit' });
 
     // Log bundle size
     const stats = fs.statSync(FINAL_FILE);

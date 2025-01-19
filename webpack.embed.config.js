@@ -3,13 +3,14 @@ const webpack = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-  mode: 'production',
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   entry: './src/embed/entry.ts',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'embed.min.js',
     clean: true
   },
+  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
   module: {
     rules: [
       {
@@ -45,7 +46,7 @@ module.exports = {
     ]
   },
   optimization: {
-    minimize: true,
+    minimize: process.env.NODE_ENV === 'production',
     minimizer: [new TerserPlugin({
       terserOptions: {
         format: {
@@ -55,7 +56,7 @@ module.exports = {
           drop_console: false,
           pure_funcs: []
         },
-        mangle: true
+        mangle: process.env.NODE_ENV === 'production'
       },
       extractComments: false,
     })]
