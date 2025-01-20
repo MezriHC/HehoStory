@@ -1,7 +1,5 @@
 {
-  "/widget/create/page": "app/widget/create/page.js",
-  "/story/create/page": "app/story/create/page.js",
-  "/profile/page": "app/profile/page.js",
+  "/widget/page": "app/widget/page.js",
   "/story/page": "app/story/page.js",
-  "/widget/page": "app/widget/page.js"
+  "/auth/signin/page": "app/auth/signin/page.js"
 }

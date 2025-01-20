@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Search, Trash2, FolderPlus, MoveRight } from 'lucide-react'
+import { ChevronDown, Search, Trash2, FolderPlus, MoveRight, Pencil, Check, X } from 'lucide-react'
 import { Folder } from '@/types/database.types'
 import DeleteConfirmation from './DeleteConfirmation'
 
@@ -13,6 +13,7 @@ interface FolderPillsProps {
   onCreateFolder: (name: string) => void
   onDeleteFolder: (folderId: string) => void
   onMoveToFolder: (folderId: string | null) => void
+  onRenameFolder?: (folderId: string, newName: string) => void
 }
 
 export default function FolderPills({
@@ -22,7 +23,8 @@ export default function FolderPills({
   onFolderSelect,
   onCreateFolder,
   onDeleteFolder,
-  onMoveToFolder
+  onMoveToFolder,
+  onRenameFolder
 }: FolderPillsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMoveMenuOpen, setIsMoveMenuOpen] = useState(false)
@@ -30,6 +32,7 @@ export default function FolderPills({
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null)
   const [showCreateInput, setShowCreateInput] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [editingFolder, setEditingFolder] = useState<{ id: string, name: string } | null>(null)
 
   const filteredFolders = folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,7 +59,29 @@ export default function FolderPills({
     if (folderToDelete) {
       onDeleteFolder(folderToDelete)
       setFolderToDelete(null)
+      setIsDropdownOpen(false)
     }
+  }
+
+  const handleRename = (folder: Folder) => {
+    setEditingFolder({ id: folder.id, name: folder.name })
+  }
+
+  const handleRenameSubmit = () => {
+    if (!editingFolder || !onRenameFolder) return
+    
+    const newName = editingFolder.name.trim()
+    if (newName === '') return
+    
+    // Check if the name already exists
+    if (folders.some(f => f.id !== editingFolder.id && f.name.toLowerCase() === newName.toLowerCase())) {
+      alert('Un dossier avec ce nom existe déjà')
+      return
+    }
+    
+    onRenameFolder(editingFolder.id, newName)
+    setEditingFolder(null)
+    setIsDropdownOpen(false)
   }
 
   return (
@@ -66,7 +91,7 @@ export default function FolderPills({
         onClose={() => setFolderToDelete(null)}
         onConfirm={confirmDeleteFolder}
         title="Supprimer le dossier"
-        description="Êtes-vous sûr de vouloir supprimer ce dossier ? Les éléments qu'il contient seront déplacés à la racine."
+        description="Êtes-vous sûr de vouloir supprimer ce dossier ? Les stories et les widgets qu'il contient seront déplacés à la racine."
       />
 
       <div className="flex items-center gap-3 mb-6">
@@ -112,23 +137,73 @@ export default function FolderPills({
                     key={folder.id}
                     className="group flex items-center"
                   >
-                    <button
-                      onClick={() => {
-                        onFolderSelect(folder.id)
-                        setIsDropdownOpen(false)
-                      }}
-                      className={`flex-1 px-3 py-2 text-sm text-left rounded-md hover:bg-gray-100 ${
-                        currentFolder === folder.id ? 'bg-gray-100' : ''
-                      }`}
-                    >
-                      {folder.name}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFolder(folder.id, folder.name)}
-                      className="hidden group-hover:flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-500 rounded-md hover:bg-gray-100"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {editingFolder?.id === folder.id ? (
+                      <div className="flex items-center gap-2 flex-1 px-2 py-1">
+                        <input
+                          type="text"
+                          value={editingFolder.name}
+                          onChange={e => setEditingFolder(prev => prev ? { ...prev, name: e.target.value } : null)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleRenameSubmit()
+                            if (e.key === 'Escape') setEditingFolder(null)
+                          }}
+                          className="w-full px-2 py-1 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                          autoFocus
+                        />
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleRenameSubmit()}
+                            className="flex items-center justify-center w-8 h-8 text-green-600 hover:text-green-700 rounded-md hover:bg-gray-100"
+                            title="Valider"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingFolder(null)}
+                            className="flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-600 rounded-md hover:bg-gray-100"
+                            title="Annuler"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            onFolderSelect(folder.id)
+                            setIsDropdownOpen(false)
+                          }}
+                          className={`flex-1 px-3 py-2 text-sm text-left rounded-md hover:bg-gray-100 ${
+                            currentFolder === folder.id ? 'bg-gray-100' : ''
+                          }`}
+                        >
+                          {folder.name}
+                        </button>
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 pr-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRename(folder)
+                            }}
+                            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+                            title="Renommer le dossier"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteFolder(folder.id, folder.name)
+                            }}
+                            className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-500 rounded-md hover:bg-gray-100"
+                            title="Supprimer le dossier"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

@@ -177,23 +177,28 @@ export default function StoriesPage() {
     if (!userId || !folderId) return
 
     try {
-      // Vérifier si le dossier contient des stories
-      const storiesInFolder = stories.filter(s => s.folder_id === folderId)
-      
       // Retirer le dossier des stories
-      const { error: updateError } = await supabase
+      const { error: updateStoriesError } = await supabase
         .from('stories')
         .update({ folder_id: null })
         .eq('folder_id', folderId)
 
-      if (updateError) throw updateError
+      if (updateStoriesError) throw updateStoriesError
+
+      // Retirer le dossier des widgets
+      const { error: updateWidgetsError } = await supabase
+        .from('widgets')
+        .update({ folder_id: null })
+        .eq('folder_id', folderId)
+
+      if (updateWidgetsError) throw updateWidgetsError
 
       // Supprimer le dossier
       const { error: deleteError } = await supabase
         .from('folders')
         .delete()
         .eq('id', folderId)
-        .eq('author_id', userId) // Vérification supplémentaire de la propriété
+        .eq('author_id', userId)
 
       if (deleteError) throw deleteError
 
@@ -212,6 +217,58 @@ export default function StoriesPage() {
       console.error('Error deleting folder:', error)
       setToast({ 
         message: 'Erreur lors de la suppression du dossier', 
+        visible: true,
+        type: 'error'
+      })
+    }
+  }
+
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    if (!userId) return
+
+    try {
+      const trimmedName = newName.trim()
+      if (trimmedName.length < 1 || trimmedName.length > 50) {
+        setToast({ 
+          message: 'Le nom du dossier doit contenir entre 1 et 50 caractères', 
+          visible: true,
+          type: 'error'
+        })
+        return
+      }
+
+      // Vérifier si le dossier existe déjà
+      const existingFolder = folders.find(
+        f => f.id !== folderId && f.name.toLowerCase() === trimmedName.toLowerCase()
+      )
+      if (existingFolder) {
+        setToast({ 
+          message: 'Un dossier avec ce nom existe déjà', 
+          visible: true,
+          type: 'error'
+        })
+        return
+      }
+
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: trimmedName })
+        .eq('id', folderId)
+        .eq('author_id', userId)
+
+      if (error) throw error
+
+      await refetchFolders()
+
+      setToast({ 
+        message: 'Dossier renommé avec succès', 
+        visible: true,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Error renaming folder:', error)
+      setToast({ 
+        message: 'Erreur lors du renommage du dossier', 
         visible: true,
         type: 'error'
       })
@@ -339,6 +396,7 @@ export default function StoriesPage() {
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           onMoveToFolder={handleMoveToFolder}
+          onRenameFolder={handleRenameFolder}
           selectedItems={selectedStories}
         />
 

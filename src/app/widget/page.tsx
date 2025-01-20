@@ -317,7 +317,11 @@ export default function WidgetsPage() {
   const [selectedWidgets, setSelectedWidgets] = useState<string[]>([])
   const [folders, setFolders] = useState<Folder[]>([])
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false })
+  const [toast, setToast] = useState<{ 
+    message: string; 
+    visible: boolean;
+    type?: 'success' | 'error' | 'info';
+  }>({ message: '', visible: false })
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -382,6 +386,8 @@ export default function WidgetsPage() {
   }
 
   const handleDeleteFolder = async (folderId: string) => {
+    if (!userId) return
+
     try {
       // First, reset folder_id for all widgets in this folder
       const { error: updateError } = await authClient
@@ -396,6 +402,7 @@ export default function WidgetsPage() {
         .from('folders')
         .delete()
         .eq('id', folderId)
+        .eq('author_id', userId)
 
       if (deleteError) throw deleteError
 
@@ -411,10 +418,18 @@ export default function WidgetsPage() {
       if (widgetsError) throw widgetsError
       
       setWidgets(updatedWidgets)
-      setToast({ message: 'Dossier supprimé avec succès', visible: true })
+      setToast({ 
+        message: 'Dossier supprimé avec succès', 
+        visible: true,
+        type: 'success'
+      })
     } catch (error) {
       console.error('Error deleting folder:', error)
-      alert('Failed to delete folder. Please try again.')
+      setToast({ 
+        message: 'Erreur lors de la suppression du dossier', 
+        visible: true,
+        type: 'error'
+      })
     }
   }
 
@@ -565,6 +580,60 @@ export default function WidgetsPage() {
     }
   }
 
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    if (!userId) return
+
+    try {
+      const trimmedName = newName.trim()
+      if (trimmedName.length < 1 || trimmedName.length > 50) {
+        setToast({ 
+          message: 'Le nom du dossier doit contenir entre 1 et 50 caractères', 
+          visible: true,
+          type: 'error'
+        })
+        return
+      }
+
+      // Vérifier si le dossier existe déjà
+      const existingFolder = folders.find(
+        f => f.id !== folderId && f.name.toLowerCase() === trimmedName.toLowerCase()
+      )
+      if (existingFolder) {
+        setToast({ 
+          message: 'Un dossier avec ce nom existe déjà', 
+          visible: true,
+          type: 'error'
+        })
+        return
+      }
+
+      const { error } = await authClient
+        .from('folders')
+        .update({ name: trimmedName })
+        .eq('id', folderId)
+        .eq('author_id', userId)
+
+      if (error) throw error
+
+      setFolders(prev => prev.map(f => 
+        f.id === folderId ? { ...f, name: trimmedName } : f
+      ))
+
+      setToast({ 
+        message: 'Dossier renommé avec succès', 
+        visible: true,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Error renaming folder:', error)
+      setToast({ 
+        message: 'Erreur lors du renommage du dossier', 
+        visible: true,
+        type: 'error'
+      })
+    }
+  }
+
   if (isLoading) {
     return <Loader />
   }
@@ -591,6 +660,18 @@ export default function WidgetsPage() {
               </Link>
             </div>
           </div>
+
+          <FolderPills
+            folders={folders}
+            currentFolder={currentFolder}
+            onFolderSelect={handleFolderSelect}
+            onCreateFolder={handleCreateFolder}
+            onDeleteFolder={handleDeleteFolder}
+            onMoveToFolder={handleMoveToFolder}
+            onRenameFolder={handleRenameFolder}
+            selectedItems={selectedWidgets}
+          />
+
           <EmptyState
             icon={LayoutGrid}
             title="Aucun widget"
@@ -661,6 +742,7 @@ export default function WidgetsPage() {
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           onMoveToFolder={handleMoveToFolder}
+          onRenameFolder={handleRenameFolder}
           selectedItems={selectedWidgets}
         />
 
