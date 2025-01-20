@@ -13,11 +13,8 @@ export default async function Dashboard() {
     redirect('/auth/signin')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+  const user = session.user
+  const userMetadata = user.user_metadata || {}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -30,12 +27,12 @@ export default async function Dashboard() {
             <div className="flex items-center">
               <div className="flex items-center space-x-4">
                 <div className="text-sm">
-                  <p className="text-gray-900">{profile?.full_name}</p>
-                  <p className="text-gray-500">{profile?.email}</p>
+                  <p className="text-gray-900">{userMetadata.full_name || user.email}</p>
+                  <p className="text-gray-500">{user.email}</p>
                 </div>
-                {profile?.avatar_url && (
+                {userMetadata.avatar_url && (
                   <img
-                    src={profile.avatar_url}
+                    src={userMetadata.avatar_url}
                     alt="Avatar"
                     className="h-8 w-8 rounded-full"
                   />

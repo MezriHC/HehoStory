@@ -11,12 +11,34 @@ export async function GET(request: Request) {
   console.log('Callback URL:', requestUrl.toString())
   console.log('Code présent:', !!code)
 
-  if (code) {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    const result = await supabase.auth.exchangeCodeForSession(code)
-    console.log('Résultat échange code:', result)
+  if (!code) {
+    console.error('Pas de code dans la requête')
+    return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin))
   }
 
-  return NextResponse.redirect(new URL('/story', requestUrl.origin))
+  try {
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('Résultat échange code:', { data, error: exchangeError })
+    
+    if (exchangeError) {
+      console.error('Erreur échange code:', exchangeError)
+      return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin))
+    }
+
+    if (data?.session) {
+      return NextResponse.redirect(new URL('/story', requestUrl.origin))
+    }
+
+    console.error('Pas de session créée')
+    return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin))
+  } catch (error) {
+    console.error('Erreur inattendue:', error)
+    if (code) {
+      return NextResponse.redirect(new URL('/story', requestUrl.origin))
+    }
+    return NextResponse.redirect(new URL('/auth/signin', requestUrl.origin))
+  }
 } 

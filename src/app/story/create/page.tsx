@@ -203,8 +203,19 @@ function StoryEditor() {
   useEffect(() => {
     if (!authLoading && !userId) {
       router.push('/auth/signin')
+      return
     }
-  }, [authLoading, userId, router])
+
+    const loadUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setProfileName(user.user_metadata?.full_name || '')
+        setProfileImage(user.user_metadata?.avatar_url || '')
+      }
+    }
+
+    loadUserData()
+  }, [authLoading, userId, router, supabase])
 
   useEffect(() => {
     setMounted(true)
