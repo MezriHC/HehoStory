@@ -180,8 +180,9 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
               <StoryStyle 
                 variant={getVariant()} 
                 size="md"
+                className=""
                 story={story}
-                className={borderColor ? `border-2 ${borderColor}` : ''}
+                style={{ borderColor: borderColor || '#000000' }}
               />
             ) : (
               getEmptyPreview()
@@ -267,8 +268,9 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const [name, setName] = useState(() => initialWidget?.name || '')
   const [stories, setStories] = useState<Story[]>([])
   const [showPreview, setShowPreview] = useState(false)
-  const [widgetBorderColor, setWidgetBorderColor] = useState('')
+  const [widgetBorderColor, setWidgetBorderColor] = useState(() => initialWidget?.border_color || '#000000')
   const [isLoading, setIsLoading] = useState(true)
+  const [toast, setToast] = useState<{ message: string; visible: boolean; type?: 'success' | 'error' | 'info' }>({ message: '', visible: false })
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -376,7 +378,8 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
         story_ids: selectedStories,
         settings: initialWidget?.settings || {},
         published: true,
-        author_id: userId
+        author_id: userId,
+        border_color: widgetBorderColor
       }
 
       console.log('Creating widget with data:', widget)
@@ -607,6 +610,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
           onClose={() => setShowPreview(false)}
           widget={previewWidget}
           stories={selectedStoriesData}
+          borderColor={widgetBorderColor}
         />
       )}
     </div>

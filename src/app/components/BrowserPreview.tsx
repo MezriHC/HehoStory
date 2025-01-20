@@ -39,13 +39,15 @@ function ProductSkeleton({
   stories,
   selectedStory,
   onStorySelect,
-  onClose
+  onClose,
+  borderColor
 }: { 
   widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
   onClose: () => void
+  borderColor?: string
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
@@ -147,6 +149,7 @@ function ProductSkeleton({
                     onStorySelect={onStorySelect}
                     alignment={widget.format.alignment}
                     className="w-full"
+                    borderColor={borderColor}
                   />
                 </div>
               </div>
@@ -203,13 +206,15 @@ function HomeSkeleton({
   stories,
   selectedStory,
   onStorySelect,
-  onClose
+  onClose,
+  borderColor
 }: { 
   widget: { format: WidgetFormat; story_ids: string[]; stories?: Story[] }
   stories?: Story[]
   selectedStory: Story | null
   onStorySelect: (story: Story | null) => void
   onClose: () => void
+  borderColor?: string
 }) {
   const isInlineWidget = ['bubble', 'card', 'square'].includes(widget.format.type)
   const displayStories = useMemo(() => widget.stories || stories || [], [widget.stories, stories])
@@ -312,6 +317,7 @@ function HomeSkeleton({
                 onStorySelect={onStorySelect}
                 alignment={widget.format.alignment}
                 className="w-full"
+                borderColor={borderColor}
               />
             </div>
           </div>
@@ -464,6 +470,7 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories, borde
                 selectedStory={selectedStoryId ? displayStories.find(s => s.id === selectedStoryId) ?? null : null}
                 onStorySelect={handleStorySelect}
                 onClose={onClose}
+                borderColor={borderColor}
               />
             ) : (
               <HomeSkeleton 
@@ -472,6 +479,7 @@ export default function BrowserPreview({ isOpen, onClose, widget, stories, borde
                 selectedStory={selectedStoryId ? displayStories.find(s => s.id === selectedStoryId) ?? null : null}
                 onStorySelect={handleStorySelect}
                 onClose={onClose}
+                borderColor={borderColor}
               />
             )}
           </div>
