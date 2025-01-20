@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search, Play } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Story } from '../../components/StoriesList'
 import WidgetFormatSelector, { WidgetFormat } from '../../components/WidgetFormatSelector'
 import { DragDropContext, Draggable, Droppable, DraggableProvided, DropResult } from '@hello-pangea/dnd'
@@ -11,6 +11,7 @@ import StoryStyle from '@/components/StoryStyle'
 import { useAuth } from '@/hooks/useAuth'
 import { Widget } from '@/app/widget/page'
 import BrowserPreview from '@/app/components/BrowserPreview'
+import { HexColorPicker } from 'react-colorful'
 
 interface StorySelector {
   stories: Story[]
@@ -189,6 +190,64 @@ function DraggableStory({ story, index, format, onRemove, borderColor }: { story
         </div>
       )}
     </Draggable>
+  )
+}
+
+function ColorPickerPopover({ color, onChange }: { color: string, onChange: (color: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value
+    if (value.startsWith('#')) {
+      value = value.slice(1)
+    }
+    if (/^[0-9A-Fa-f]{0,6}$/.test(value)) {
+      onChange('#' + value.padEnd(6, '0'))
+    }
+  }
+
+  return (
+    <div className="relative" ref={popoverRef}>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Border color
+      </label>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-[42px] w-[42px] rounded-lg border border-gray-200 p-1 cursor-pointer hover:border-gray-300"
+        >
+          <div
+            className="w-full h-full rounded-md border border-gray-200"
+            style={{ backgroundColor: color }}
+          />
+        </button>
+        <input
+          type="text"
+          value={color}
+          onChange={handleHexInputChange}
+          className="flex-1 px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+          placeholder="#000000"
+        />
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-10 top-full mt-2 bg-white rounded-lg shadow-lg p-3 border border-gray-200">
+          <HexColorPicker color={color} onChange={onChange} />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -481,17 +540,25 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
               </h2>
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Widget name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="block w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
-                    placeholder="Enter widget name"
-                  />
+                  <div className="mb-4">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Widget name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="block w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+                      placeholder="Enter widget name"
+                    />
+                  </div>
+                  <div className="mb-6">
+                    <ColorPickerPopover
+                      color={widgetBorderColor}
+                      onChange={setWidgetBorderColor}
+                    />
+                  </div>
                 </div>
                 
                 <div>
