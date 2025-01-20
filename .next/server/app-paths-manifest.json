@@ -1,7 +1,1 @@
-{
-  "/story/page": "app/story/page.js",
-  "/widget/page": "app/widget/page.js",
-  "/widget/create/page": "app/widget/create/page.js",
-  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
-  "/auth/signin/page": "app/auth/signin/page.js"
-}
+{}

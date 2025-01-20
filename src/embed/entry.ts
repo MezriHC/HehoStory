@@ -40,6 +40,7 @@ interface Widget {
     autoplay?: boolean;
     loop?: boolean;
   };
+  border_color?: string;
 }
 
 // Point d'entrée du script d'embed HehoStory
@@ -95,7 +96,8 @@ interface Widget {
         story_ids: Array.isArray(widget.story_ids) ? widget.story_ids : [],
         settings: typeof widget.settings === 'string' 
           ? JSON.parse(widget.settings)
-          : widget.settings || {}
+          : widget.settings || {},
+        border_color: widget.border_color || undefined
       };
 
       console.log('✅ Widget traité:', processedWidget);
@@ -180,6 +182,7 @@ interface Widget {
           variant: widget.format.type,
           size: widget.format.size,
           alignment: widget.format.alignment,
+          borderColor: widget.border_color,
           onStorySelect: (story) => {
             console.log('👆 Story sélectionnée:', story.id);
             console.log('📐 Format du widget:', widget.format);
