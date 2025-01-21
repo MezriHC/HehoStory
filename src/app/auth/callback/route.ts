@@ -29,6 +29,37 @@ export async function GET(request: Request) {
     }
 
     if (data?.session) {
+      const user = data.session.user
+
+      // Vérifier si les préférences existent déjà
+      const { data: existingPrefs } = await supabase
+        .from('preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingPrefs) {
+        // Ajuster l'URL de l'image Google pour une meilleure résolution
+        let avatarUrl = user.user_metadata?.avatar_url
+        if (avatarUrl && avatarUrl.includes('googleusercontent.com')) {
+          avatarUrl = avatarUrl.replace('=s96-c', '=s400-c')
+        }
+
+        // Créer les préférences avec les données Google
+        const { error: prefsError } = await supabase
+          .from('preferences')
+          .insert({
+            user_id: user.id,
+            widget_border_color: '#000000',
+            custom_name: user.user_metadata?.full_name || null,
+            custom_picture: avatarUrl
+          })
+
+        if (prefsError) {
+          console.error('Erreur création préférences:', prefsError)
+        }
+      }
+
       return NextResponse.redirect(new URL('/story', requestUrl.origin))
     }
 

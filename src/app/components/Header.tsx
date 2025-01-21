@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { useProfileStore } from '@/hooks/useProfile'
 
 type NavItem = {
   label: string
@@ -42,7 +44,14 @@ interface Profile {
   picture: string | null
 }
 
+interface Preferences {
+  profile_picture: string | null
+  profile_name: string | null
+  widget_border_color: string
+}
+
 export default function Header() {
+  const { userId, supabase } = useAuth()
   const [language, setLanguage] = useState<'FR' | 'EN'>('FR')
   const [isLanguageOpen, setIsLanguageOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -52,28 +61,80 @@ export default function Header() {
   })
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const { profilePicture, profileName, setProfile: setGlobalProfile } = useProfileStore()
 
   useEffect(() => {
-    const loadProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
+    if (!userId) return
+
+    const loadProfilePicture = async () => {
+      try {
+        // Charger les préférences
+        const { data: prefsData } = await supabase
+          .from('preferences')
+          .select('profile_picture, profile_name')
+          .eq('user_id', userId)
           .single()
 
-        if (profile) {
-          setProfile({
-            name: profile.full_name,
-            picture: profile.avatar_url
-          })
+        const prefs = prefsData as Preferences
+
+        if (prefs?.profile_picture) {
+          setGlobalProfile(prefs.profile_picture, prefs.profile_name)
+          setProfile(prev => ({
+            ...prev,
+            name: prefs.profile_name || '',
+            picture: prefs.profile_picture
+          }))
+        } else {
+          // Fallback sur l'image Google
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user?.user_metadata?.avatar_url) {
+            const avatarUrl = user.user_metadata.avatar_url.replace('=s96-c', '=s400-c')
+            setGlobalProfile(avatarUrl, user.user_metadata.full_name)
+            setProfile(prev => ({
+              ...prev,
+              name: user.user_metadata.full_name || '',
+              picture: avatarUrl
+            }))
+          }
         }
+      } catch (error) {
+        console.error('Error loading profile picture:', error)
       }
     }
-    loadProfile()
-  }, [supabase])
+
+    // Charger initialement
+    loadProfilePicture()
+
+    // Écouter les changements de profil
+    const channel = supabase
+      .channel('preferences_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'preferences',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Profile updated:', payload)
+          const newPrefs = payload.new as Preferences
+          if (newPrefs) {
+            setGlobalProfile(newPrefs.profile_picture, newPrefs.profile_name)
+            setProfile(prev => ({
+              ...prev,
+              name: newPrefs.profile_name || prev.name,
+              picture: newPrefs.profile_picture
+            }))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, supabase, setGlobalProfile])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -194,26 +255,43 @@ export default function Header() {
           <div className="relative" data-dropdown>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              className="w-10 h-10 flex items-center justify-center"
             >
-              {profile.picture ? (
-                <img
-                  src={profile.picture}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <User className="w-5 h-5 text-gray-600" />
-              )}
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
+                {profilePicture ? (
+                  <img
+                    src={profilePicture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>'
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-gray-400" />
+                  </div>
+                )}
+              </div>
             </button>
 
             {/* Profile Dropdown */}
             {isProfileOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white border border-gray-200 overflow-hidden">
-                {profile.name && (
+                {profileName && (
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {profile.name}
+                      {profileName}
                     </p>
                   </div>
                 )}
