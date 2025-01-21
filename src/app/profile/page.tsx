@@ -4,15 +4,14 @@ import { Camera, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import Toast from '../components/Toast'
-import BrowserPreview from '../components/BrowserPreview'
-import ColorPicker from '../components/widgets/ColorPicker'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useAuth } from '@/hooks/useAuth'
+import { HexColorPicker } from 'react-colorful'
 
 interface Profile {
   name: string
   picture: string | null
-  widgetBorderColor: string
+  defaultBorderColor: string
 }
 
 async function compressImage(dataUrl: string): Promise<string> {
@@ -43,13 +42,72 @@ async function compressImage(dataUrl: string): Promise<string> {
   })
 }
 
+function ColorPickerPopover({ color, onChange }: { color: string, onChange: (color: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value
+    if (value.startsWith('#')) {
+      value = value.slice(1)
+    }
+    if (/^[0-9A-Fa-f]{0,6}$/.test(value)) {
+      onChange('#' + value.padEnd(6, '0'))
+    }
+  }
+
+  return (
+    <div className="relative" ref={popoverRef}>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Border color
+      </label>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-[42px] w-[42px] rounded-lg border border-gray-200 p-1 cursor-pointer hover:border-gray-300"
+        >
+          <div
+            className="w-full h-full rounded-md border border-gray-200"
+            style={{ backgroundColor: color }}
+          />
+        </button>
+        <input
+          type="text"
+          value={color}
+          onChange={handleHexInputChange}
+          className="flex-1 px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900"
+          placeholder="#000000"
+        />
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-10 top-full mt-2 bg-white rounded-lg shadow-lg p-3 border border-gray-200">
+          <HexColorPicker color={color} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const { userId, loading: authLoading } = useAuth()
   const [mounted, setMounted] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [profile, setProfile] = useState<Profile>({
     name: '',
     picture: null,
-    widgetBorderColor: '#000000'
+    defaultBorderColor: '#000000'
   })
   const [showToast, setShowToast] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -71,7 +129,7 @@ export default function ProfilePage() {
 
     const loadProfile = async () => {
       try {
-        // Charger le profil
+        // 1. Charger le profil
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
@@ -86,40 +144,35 @@ export default function ProfilePage() {
           }))
         }
 
-        // Charger ou créer les préférences
-        const { data: prefData, error: prefError } = await supabase
+        // 2. Charger ou créer les préférences
+        const { data: prefsData, error: prefsError } = await supabase
           .from('preferences')
-          .select('*')
+          .select('widget_border_color')
           .eq('user_id', userId)
-          .single()
+          .maybeSingle()
 
-        if (prefError) {
-          // Si les préférences n'existent pas, les créer
-          const { data: newPrefData, error: insertError } = await supabase
+        if (!prefsData) {
+          // Si pas de préférences, créer avec la couleur par défaut
+          await supabase
             .from('preferences')
-            .insert([
-              {
-                user_id: userId,
-                widget_border_color: '#000000'
-              }
-            ])
-            .select()
-            .single()
+            .insert({
+              user_id: userId,
+              widget_border_color: '#000000'
+            })
 
-          if (!insertError && newPrefData) {
-            setProfile(prev => ({
-              ...prev,
-              widgetBorderColor: newPrefData.widget_border_color
-            }))
-          }
-        } else if (prefData) {
           setProfile(prev => ({
             ...prev,
-            widgetBorderColor: prefData.widget_border_color
+            defaultBorderColor: '#000000'
+          }))
+        } else {
+          // Si préférences existantes, utiliser la couleur sauvegardée
+          setProfile(prev => ({
+            ...prev,
+            defaultBorderColor: prefsData.widget_border_color
           }))
         }
       } catch (error) {
-        console.error('Error loading profile:', error)
+        console.error('Error loading data:', error)
       }
     }
 
@@ -127,10 +180,19 @@ export default function ProfilePage() {
   }, [mounted, userId, supabase])
 
   const handleSave = async () => {
-    if (!userId) return
+    if (!userId || isSaving) return
+    setIsSaving(true)
 
     try {
-      // Mettre à jour le profil
+      // 1. Mettre à jour les préférences
+      const { error: prefsError } = await supabase
+        .from('preferences')
+        .update({ widget_border_color: profile.defaultBorderColor })
+        .eq('user_id', userId)
+
+      if (prefsError) throw prefsError
+
+      // 2. Mettre à jour le profil
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -141,20 +203,13 @@ export default function ProfilePage() {
 
       if (profileError) throw profileError
 
-      // Mettre à jour les préférences
-      const { error: prefError } = await supabase
-        .from('preferences')
-        .upsert({
-          user_id: userId,
-          widget_border_color: profile.widgetBorderColor
-        })
-
-      if (prefError) throw prefError
-
+      // 3. Afficher le toast et rediriger
       setShowToast(true)
-      setTimeout(() => setShowToast(false), 3000)
+      router.push('/stories')
     } catch (error) {
-      console.error('Error saving profile:', error)
+      console.error('Error saving:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -189,6 +244,12 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toast 
+        message="Changes saved successfully!"
+        visible={showToast}
+        onClose={() => setShowToast(false)}
+        type="success"
+      />
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
@@ -272,39 +333,14 @@ export default function ProfilePage() {
           <div className="bg-white rounded-2xl shadow-sm p-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Widget Appearance</h2>
             <div className="space-y-8">
-              {/* Widget Border Color */}
-              <ColorPicker
-                value={profile.widgetBorderColor}
-                onChange={(color) => setProfile(prev => ({ ...prev, widgetBorderColor: color }))}
-                label="Widget Border Color"
-                description="Choose the border color for all your story widgets"
+              {/* Default Widget Border Color */}
+              <ColorPickerPopover
+                color={profile.defaultBorderColor}
+                onChange={(color) => setProfile(prev => ({ ...prev, defaultBorderColor: color }))}
               />
-
-              {/* Preview */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-4">
-                  Widget Preview
-                  <span className="block text-sm font-normal text-gray-500 mt-1">
-                    See how your stories will appear in different widget styles
-                  </span>
-                </label>
-                <div className="bg-gray-50 rounded-xl p-6">
-                  <BrowserPreview 
-                    isOpen={true}
-                    onClose={() => {}}
-                    widget={{
-                      format: {
-                        type: 'card',
-                        size: 'M',
-                        alignment: 'center'
-                      },
-                      story_ids: []
-                    }}
-                    stories={[]}
-                    borderColor={profile.widgetBorderColor}
-                  />
-                </div>
-              </div>
+              <p className="text-sm text-gray-500">
+                Cette couleur sera utilisée par défaut pour tous les nouveaux widgets. Vous pourrez toujours personnaliser la couleur pour chaque widget individuellement.
+              </p>
             </div>
           </div>
 
@@ -312,20 +348,21 @@ export default function ProfilePage() {
           <div className="lg:col-span-2">
             <button
               onClick={handleSave}
-              className="w-full h-14 flex items-center justify-center text-base font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
+              disabled={isSaving}
+              className={`
+                w-full h-14 
+                flex items-center justify-center 
+                text-base font-medium text-white 
+                ${isSaving ? 'bg-gray-400' : 'bg-gray-900 hover:bg-gray-800'} 
+                rounded-xl transition-colors shadow-sm
+              `}
             >
               <Save className="w-5 h-5 mr-2" />
-              Save Changes
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
       </div>
-
-      <Toast 
-        message="Profile saved successfully"
-        visible={showToast}
-        onClose={() => setShowToast(false)}
-      />
     </div>
   )
 } 

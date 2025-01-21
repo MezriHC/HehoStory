@@ -1,17 +1,7 @@
 {
-  "/_not-found": "app/_not-found.js",
-  "/api/embed/widget/route": "app/api/embed/widget/route.js",
-  "/api/stories/route": "app/api/stories/route.js",
-  "/api/embed/stories/route": "app/api/embed/stories/route.js",
   "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
-  "/page": "app/page.js",
   "/profile/page": "app/profile/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/story/create/page": "app/story/create/page.js",
-  "/widget/create/page": "app/widget/create/page.js",
   "/story/page": "app/story/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/widget/page": "app/widget/page.js",
-  "/auth/signin/page": "app/auth/signin/page.js",
-  "/auth/callback/route": "app/auth/callback/route.js"
+  "/widget/page": "app/widget/page.js"
 }
