@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search, Play } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Trash2, X, GripVertical, Search, Play, Check, Image } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
@@ -52,46 +52,78 @@ function StorySelector({ stories, selectedStories, onSelect }: StorySelector) {
       </div>
 
       {/* Stories grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-        {filteredStories.map(story => (
-          <button
-            key={story.id}
-            onClick={() => onSelect(story.id)}
-            className={`
-              group relative bg-white border-2 rounded-xl overflow-hidden transition-all
-              ${selectedStories.includes(story.id)
-                ? 'border-gray-900 shadow-sm'
-                : 'border-gray-200 hover:border-gray-300'}
-            `}
-          >
-            <div className="aspect-[16/9] relative bg-gray-100">
-              {story.thumbnail ? (
-                <img
-                  src={story.thumbnail}
-                  alt={story.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-100" />
-              )}
-            </div>
-            <div className="p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {story.title}
-                </span>
-                <div 
-                  className={`
-                    w-4 h-4 rounded-full border-2 transition-colors
-                    ${selectedStories.includes(story.id)
-                      ? 'border-gray-900 bg-gray-900'
-                      : 'border-gray-300 group-hover:border-gray-400'}
-                  `}
-                />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {filteredStories.map(story => {
+          const isSelected = selectedStories.includes(story.id)
+          const mediaType = getMediaType(story)
+
+          return (
+            <button
+              key={story.id}
+              onClick={() => onSelect(story.id)}
+              className={`
+                group relative bg-white rounded-xl overflow-hidden transition-all
+                ${isSelected
+                  ? 'ring-2 ring-gray-900 ring-offset-2'
+                  : 'ring-1 ring-gray-200 hover:ring-gray-300'}
+              `}
+            >
+              {/* Story preview container */}
+              <div className="aspect-[9/16] relative">
+                {/* Thumbnail */}
+                {story.thumbnail ? (
+                  <img
+                    src={story.thumbnail}
+                    alt={story.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-gray-200" />
+                  </div>
+                )}
+
+                {/* Media type indicator */}
+                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                  {mediaType === 'video' ? (
+                    <Play className="w-4 h-4 text-white" fill="currentColor" />
+                  ) : (
+                    <Image className="w-4 h-4 text-white" />
+                  )}
+                </div>
+
+                {/* Permanent gradient overlay for title visibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+                {/* Selection overlay */}
+                <div className={`
+                  absolute inset-0 bg-black/20 transition-opacity duration-200
+                  ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}
+                `} />
+
+                {/* Title and selection indicator - Always visible */}
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-white truncate pr-2 drop-shadow-sm">
+                      {story.title}
+                    </span>
+                    <div className={`
+                      w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0
+                      transition-all duration-200
+                      ${isSelected
+                        ? 'bg-white border-white scale-100'
+                        : 'border-white/40 bg-black/10 hover:border-white/60 hover:bg-black/20 scale-95 hover:scale-100'}
+                    `}>
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-gray-900" />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

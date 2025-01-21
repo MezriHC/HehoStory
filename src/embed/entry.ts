@@ -40,6 +40,7 @@ interface Widget {
     autoplay?: boolean;
     loop?: boolean;
   };
+  border_color?: string;
 }
 
 // Point d'entrée du script d'embed HehoStory
@@ -48,7 +49,7 @@ interface Widget {
   
   // Configuration de l'API
   const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3004/api/embed'
+    ? 'http://localhost:3001/api/embed'
     : 'https://hehostory.vercel.app/api/embed';
   
   // Fonction pour charger les données d'un widget
@@ -95,7 +96,8 @@ interface Widget {
         story_ids: Array.isArray(widget.story_ids) ? widget.story_ids : [],
         settings: typeof widget.settings === 'string' 
           ? JSON.parse(widget.settings)
-          : widget.settings || {}
+          : widget.settings || {},
+        border_color: widget.border_color || '#000000'
       };
 
       console.log('✅ Widget traité:', processedWidget);
@@ -180,6 +182,7 @@ interface Widget {
           variant: widget.format.type,
           size: widget.format.size,
           alignment: widget.format.alignment,
+          borderColor: widget.border_color || '#000000',
           onStorySelect: (story) => {
             console.log('👆 Story sélectionnée:', story.id);
             console.log('📐 Format du widget:', widget.format);
@@ -192,6 +195,7 @@ interface Widget {
                 React.createElement(StoryViewer, {
                   stories,
                   selectedStoryId: story.id,
+                  borderColor: widget.border_color || '#000000',
                   onClose: () => {
                     if (viewerContainer) {
                       console.log('🔚 Fermeture du viewer');

@@ -19,6 +19,7 @@ interface StoryStyleProps {
   isFirstStory?: boolean
   isLastStory?: boolean
   isModal?: boolean
+  borderColor?: string
 }
 
 interface StoryCarouselProps {
@@ -28,6 +29,7 @@ interface StoryCarouselProps {
   onStorySelect: (story: Story) => void
   className?: string
   alignment?: Alignment
+  borderColor?: string
 }
 
 const STORY_DURATION = 5000 // 5 seconds for images
@@ -48,7 +50,8 @@ export function StoryStyle({
   onPrevStory,
   isFirstStory = false,
   isLastStory = false,
-  isModal = false
+  isModal = false,
+  borderColor = '#000000'
 }: StoryStyleProps) {
   const [mounted, setMounted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -67,9 +70,9 @@ export function StoryStyle({
 
   // Styles communs pour les vignettes
   const thumbnailStyles = {
-    bubble: 'rounded-full border-[3px] border-black shadow-lg transition-transform duration-200 flex items-center justify-center',
-    card: 'aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200',
-    square: 'aspect-square rounded-lg overflow-hidden ring-2 ring-black ring-offset-2 shadow-lg transition-transform duration-200'
+    bubble: `rounded-full border-[3px] shadow-lg transition-transform duration-200 flex items-center justify-center`,
+    card: `aspect-[9/16] rounded-xl overflow-hidden ring-2 ring-offset-2 shadow-lg transition-transform duration-200`,
+    square: `aspect-square rounded-lg overflow-hidden ring-2 ring-offset-2 shadow-lg transition-transform duration-200`
   }
 
   const sizeStyles = {
@@ -112,6 +115,10 @@ export function StoryStyle({
         <div 
           className={containerStyle}
           onClick={onClick}
+          style={{
+            ...(variant === 'bubble' ? { borderColor } : {}),
+            ...(variant !== 'bubble' ? { '--tw-ring-color': borderColor } as React.CSSProperties : {})
+          }}
         >
           {variant === 'bubble' ? (
             <div className={`${size === 'S' ? 'w-[60px] h-[60px]' : size === 'M' ? 'w-[80px] h-[80px]' : 'w-[110px] h-[110px]'} rounded-full overflow-hidden relative`}>
@@ -538,7 +545,7 @@ export function StoryStyle({
   )
 }
 
-export function StoryCarousel({ stories, variant, size, onStorySelect, className = '', alignment = 'center' }: StoryCarouselProps) {
+export function StoryCarousel({ stories, variant, size, onStorySelect, className = '', alignment = 'center', borderColor = '#000000' }: StoryCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
@@ -619,6 +626,7 @@ export function StoryCarousel({ stories, variant, size, onStorySelect, className
                 story={story}
                 onClick={() => onStorySelect(story)}
                 size={size}
+                borderColor={borderColor}
               />
             ))}
           </div>
@@ -663,12 +671,14 @@ export function StoryViewer({
   stories,
   onClose,
   selectedStoryId,
-  className = ''
+  className = '',
+  borderColor = '#000000'
 }: {
   stories: Story[]
   onClose: () => void
   selectedStoryId?: string
   className?: string
+  borderColor?: string
 }) {
   const [selectedStory, setSelectedStory] = useState<Story | null>(
     selectedStoryId ? stories.find(s => s.id === selectedStoryId) || stories[0] : stories[0]
@@ -736,6 +746,7 @@ export function StoryViewer({
             isLastStory={selectedStoryIndex === stories.length - 1}
             className="rounded-xl overflow-hidden"
             isModal={true}
+            borderColor={borderColor}
           />
         </div>
       </div>

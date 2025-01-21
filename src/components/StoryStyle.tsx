@@ -519,34 +519,38 @@ export default function StoryStyle({
               <div 
                 className="absolute left-0 top-0 bottom-0 w-1/3 z-30"
                 onClick={(e) => {
-                  console.log('⬅️ Zone gauche cliquée')
                   e.preventDefault()
                   e.stopPropagation()
-                  goToPrevFrame()
+                  if (currentIndex === 0 && isFirstStory) {
+                    onComplete?.()
+                  } else {
+                    goToPrevFrame()
+                  }
                 }}
               />
               <div 
                 className="absolute right-0 top-0 bottom-0 w-1/3 z-30"
                 onClick={(e) => {
-                  console.log('➡️ Zone droite cliquée')
                   e.preventDefault()
                   e.stopPropagation()
-                  goToNextFrame()
+                  if (isLastItem && isLastStory) {
+                    onComplete?.()
+                  } else {
+                    goToNextFrame()
+                  }
                 }}
               />
             </>
           )}
 
-          {/* Phone Preview Click Handler */}
+          {/* Phone Preview Click Handler - Removed */}
           {isPhonePreview && (
             <div 
               className="absolute inset-0 z-30"
               onClick={(e) => {
-                console.log('📱 Zone preview cliquée')
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('📱 Appel de onComplete depuis la zone preview')
-                onComplete?.()
+                // Ne rien faire au clic à l'intérieur de la story en mode preview
               }}
             />
           )}
