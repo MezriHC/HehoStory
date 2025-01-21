@@ -110,6 +110,8 @@ export default function ProfilePage() {
     defaultBorderColor: '#000000'
   })
   const [showToast, setShowToast] = useState(false)
+  const [toastType, setToastType] = useState<'success' | 'error'>('success')
+  const [toastMessage, setToastMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -127,24 +129,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!mounted || !userId) return
 
-    const loadProfile = async () => {
+    const loadPreferences = async () => {
       try {
-        // 1. Charger le profil
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single()
-
-        if (profileData) {
-          setProfile(prev => ({
-            ...prev,
-            name: profileData.full_name || '',
-            picture: profileData.avatar_url
-          }))
-        }
-
-        // 2. Charger ou créer les préférences
+        // Charger les préférences
         const { data: prefsData, error: prefsError } = await supabase
           .from('preferences')
           .select('widget_border_color')
@@ -153,12 +140,14 @@ export default function ProfilePage() {
 
         if (!prefsData) {
           // Si pas de préférences, créer avec la couleur par défaut
-          await supabase
+          const { error: createError } = await supabase
             .from('preferences')
             .insert({
               user_id: userId,
               widget_border_color: '#000000'
             })
+
+          if (createError) throw createError
 
           setProfile(prev => ({
             ...prev,
@@ -172,11 +161,14 @@ export default function ProfilePage() {
           }))
         }
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error('Error loading preferences:', error)
+        setToastType('error')
+        setToastMessage('Error loading preferences')
+        setShowToast(true)
       }
     }
 
-    loadProfile()
+    loadPreferences()
   }, [mounted, userId, supabase])
 
   const handleSave = async () => {
@@ -184,7 +176,7 @@ export default function ProfilePage() {
     setIsSaving(true)
 
     try {
-      // 1. Mettre à jour les préférences
+      // Mettre à jour les préférences
       const { error: prefsError } = await supabase
         .from('preferences')
         .update({ widget_border_color: profile.defaultBorderColor })
@@ -192,22 +184,19 @@ export default function ProfilePage() {
 
       if (prefsError) throw prefsError
 
-      // 2. Mettre à jour le profil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profile.name,
-          avatar_url: profile.picture
-        })
-        .eq('id', userId)
-
-      if (profileError) throw profileError
-
-      // 3. Afficher le toast et rediriger
+      // Afficher le toast et attendre avant la redirection
+      setToastType('success')
+      setToastMessage('Changes saved successfully!')
       setShowToast(true)
-      router.push('/stories')
+      
+      setTimeout(() => {
+        router.push('/story')
+      }, 1500)
     } catch (error) {
       console.error('Error saving:', error)
+      setToastType('error')
+      setToastMessage('Error saving changes. Please try again.')
+      setShowToast(true)
     } finally {
       setIsSaving(false)
     }
@@ -245,10 +234,10 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toast 
-        message="Changes saved successfully!"
+        message={toastMessage}
         visible={showToast}
         onClose={() => setShowToast(false)}
-        type="success"
+        type={toastType}
       />
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="mb-8">

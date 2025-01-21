@@ -1,7 +1,7 @@
 {
-  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/story/page": "app/story/page.js",
-  "/widget/page": "app/widget/page.js"
+  "/story/create/page": "app/story/create/page.js",
+  "/widget/[id]/edit/page": "app/widget/[id]/edit/page.js",
+  "/widget/page": "app/widget/page.js",
+  "/widget/create/page": "app/widget/create/page.js"
 }

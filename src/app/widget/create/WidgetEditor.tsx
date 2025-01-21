@@ -269,6 +269,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
   const [stories, setStories] = useState<Story[]>([])
   const [showPreview, setShowPreview] = useState(false)
   const [widgetBorderColor, setWidgetBorderColor] = useState(() => initialWidget?.border_color || '#000000')
+  const [defaultBorderColor, setDefaultBorderColor] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; visible: boolean; type?: 'success' | 'error' | 'info' }>({ message: '', visible: false })
 
@@ -300,7 +301,11 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
           .single()
 
         if (!prefsError && prefsData) {
-          setWidgetBorderColor(prefsData.widget_border_color)
+          // Ne mettre à jour la couleur de bordure que si le widget n'a pas de couleur personnalisée
+          setDefaultBorderColor(prefsData.widget_border_color)
+          if (!initialWidget?.border_color) {
+            setWidgetBorderColor(prefsData.widget_border_color)
+          }
         }
       } catch (error) {
         console.error('Error loading data:', error)
