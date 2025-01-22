@@ -52,9 +52,8 @@ interface Preferences {
 
 export default function Header() {
   const { userId, supabase } = useAuth()
+  const [activeDropdown, setActiveDropdown] = useState<'language' | 'profile' | null>(null)
   const [language, setLanguage] = useState<'FR' | 'EN'>('FR')
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profile, setProfile] = useState<Profile>({
     name: '',
     picture: null
@@ -146,15 +145,13 @@ export default function Header() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       if (!target.closest('[data-dropdown]')) {
-        setIsLanguageOpen(false)
-        setIsProfileOpen(false)
+        setActiveDropdown(null)
       }
     }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsLanguageOpen(false)
-        setIsProfileOpen(false)
+        setActiveDropdown(null)
       }
     }
 
@@ -168,8 +165,7 @@ export default function Header() {
 
   // Close dropdowns when navigating
   useEffect(() => {
-    setIsLanguageOpen(false)
-    setIsProfileOpen(false)
+    setActiveDropdown(null)
   }, [pathname])
 
   return (
@@ -212,7 +208,7 @@ export default function Header() {
           {/* Language selector */}
           <div className="relative" data-dropdown>
             <button
-              onClick={() => setIsLanguageOpen(!isLanguageOpen)}
+              onClick={() => setActiveDropdown(activeDropdown === 'language' ? null : 'language')}
               className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
               aria-label="Change language"
             >
@@ -220,14 +216,14 @@ export default function Header() {
             </button>
 
             {/* Language Dropdown */}
-            {isLanguageOpen && (
+            {activeDropdown === 'language' && (
               <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white border border-gray-200 overflow-hidden">
                 {languages.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => {
                       setLanguage(lang.code)
-                      setIsLanguageOpen(false)
+                      setActiveDropdown(null)
                     }}
                     className={`
                       w-full px-4 py-2.5 text-sm text-left flex items-center gap-3
@@ -254,7 +250,7 @@ export default function Header() {
           {/* Profile menu */}
           <div className="relative" data-dropdown>
             <button
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
               className="w-10 h-10 flex items-center justify-center"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
@@ -286,7 +282,7 @@ export default function Header() {
             </button>
 
             {/* Profile Dropdown */}
-            {isProfileOpen && (
+            {activeDropdown === 'profile' && (
               <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white border border-gray-200 overflow-hidden">
                 {profileName && (
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -298,7 +294,7 @@ export default function Header() {
                 <div className="py-1">
                   <Link
                     href="/profile"
-                    onClick={() => setIsProfileOpen(false)}
+                    onClick={() => setActiveDropdown(null)}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     Configuration du profil
