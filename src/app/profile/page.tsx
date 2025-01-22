@@ -152,7 +152,7 @@ export default function ProfilePage() {
   const [toastMessage, setToastMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const { setProfile: setGlobalProfile } = useProfileStore()
+  const { setGlobalProfile, setTempProfile, clearTempProfile } = useProfileStore()
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -174,12 +174,6 @@ export default function ProfilePage() {
         
         if (authError) throw authError
 
-        // Ajuster l'URL de l'image Google pour une meilleure résolution
-        let avatarUrl = user?.user_metadata?.avatar_url
-        if (avatarUrl && avatarUrl.includes('googleusercontent.com')) {
-          avatarUrl = avatarUrl.replace('=s96-c', '=s400-c')
-        }
-
         // Charger les préférences
         const { data: prefsData, error: prefsError } = await supabase
           .from('preferences')
@@ -194,26 +188,26 @@ export default function ProfilePage() {
             .insert({
               user_id: userId,
               widget_border_color: '#000000',
-              profile_name: user?.user_metadata?.full_name || '',
-              profile_picture: avatarUrl
+              profile_name: '',
+              profile_picture: null
             })
 
           if (createError) throw createError
 
           setProfile(prev => ({
             ...prev,
-            name: user?.user_metadata?.full_name || '',
-            picture: avatarUrl || null,
+            name: '',
+            picture: null,
             defaultBorderColor: '#000000',
-            customName: user?.user_metadata?.full_name || '',
-            customPicture: avatarUrl
+            customName: '',
+            customPicture: null
           }))
         } else {
           // Si préférences existantes, utiliser les valeurs sauvegardées
           setProfile(prev => ({
             ...prev,
-            name: prefsData.profile_name || user?.user_metadata?.full_name || '',
-            picture: prefsData.profile_picture || avatarUrl || null,
+            name: prefsData.profile_name || '',
+            picture: prefsData.profile_picture,
             defaultBorderColor: prefsData.widget_border_color,
             customName: prefsData.profile_name,
             customPicture: prefsData.profile_picture
@@ -229,6 +223,39 @@ export default function ProfilePage() {
 
     loadUserData()
   }, [mounted, userId, supabase, t])
+
+  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+
+    // Valider l'image
+    if (!validateImage(file)) {
+      setToastType('error')
+      setToastMessage(t('profile.page.picture.validation.error'))
+      setShowToast(true)
+      return
+    }
+
+    try {
+      // Créer une URL temporaire pour la prévisualisation
+      const tempUrl = URL.createObjectURL(file)
+      
+      // Mettre à jour le state local
+      setProfile(prev => ({
+        ...prev,
+        picture: tempUrl,
+        pendingFile: file
+      }))
+
+      // Mettre à jour le store global avec l'URL temporaire
+      setTempProfile(tempUrl)
+    } catch (error) {
+      console.error('Error reading file:', error)
+      setToastType('error')
+      setToastMessage(t('profile.page.picture.validation.readError'))
+      setShowToast(true)
+    }
+  }
 
   const handleSave = async () => {
     if (!userId || isSaving) return
@@ -254,7 +281,6 @@ export default function ProfilePage() {
         if (profile.customPicture && !profile.customPicture.includes('googleusercontent')) {
           try {
             const oldFileUrl = new URL(profile.customPicture)
-            // Extraire le chemin du fichier après 'profile/'
             const pathParts = oldFileUrl.pathname.split('profile/')
             if (pathParts.length > 1) {
               const oldFilePath = pathParts[1]
@@ -297,7 +323,7 @@ export default function ProfilePage() {
         finalPictureUrl = publicUrl
       }
 
-      // Mettre à jour les préférences avec l'URL finale de l'image
+      // Mettre à jour les préférences
       const { error: prefsError } = await supabase
         .from('preferences')
         .update({
@@ -309,7 +335,7 @@ export default function ProfilePage() {
 
       if (prefsError) throw prefsError
 
-      // Mettre à jour le state avec l'URL finale
+      // Mettre à jour le state local
       setProfile(prev => ({
         ...prev,
         picture: finalPictureUrl,
@@ -317,8 +343,9 @@ export default function ProfilePage() {
         pendingFile: null
       }))
 
-      // Mettre à jour le store global
+      // Mettre à jour le store global avec l'URL finale et effacer l'URL temporaire
       setGlobalProfile(finalPictureUrl, profile.name.trim())
+      clearTempProfile()
 
       setToastType('success')
       setToastMessage(t('profile.page.saved'))
@@ -328,43 +355,28 @@ export default function ProfilePage() {
       setToastType('error')
       setToastMessage(error.message || t('profile.page.error'))
       setShowToast(true)
+      
+      // En cas d'erreur, revenir à l'état précédent
+      if (profile.pendingFile) {
+        setProfile(prev => ({
+          ...prev,
+          picture: prev.customPicture,
+          pendingFile: null
+        }))
+        setGlobalProfile(profile.customPicture, profile.customName)
+        clearTempProfile()
+      }
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handlePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !userId) return
-
-    // Valider l'image
-    if (!validateImage(file)) {
-      setToastType('error')
-      setToastMessage(t('profile.page.picture.validation.error'))
-      setShowToast(true)
-      return
+  // Nettoyer l'URL temporaire si on quitte la page sans sauvegarder
+  useEffect(() => {
+    return () => {
+      clearTempProfile()
     }
-
-    try {
-      // Créer une URL temporaire pour la prévisualisation
-      const tempUrl = URL.createObjectURL(file)
-      
-      // Mettre à jour le state avec le fichier en attente et l'URL temporaire
-      setProfile(prev => ({
-        ...prev,
-        picture: tempUrl,
-        pendingFile: file
-      }))
-
-      // Mettre à jour le store global avec l'URL temporaire
-      setGlobalProfile(tempUrl, profile.name)
-    } catch (error) {
-      console.error('Error reading file:', error)
-      setToastType('error')
-      setToastMessage(t('profile.page.picture.validation.readError'))
-      setShowToast(true)
-    }
-  }
+  }, [])
 
   if (!mounted) {
     return (

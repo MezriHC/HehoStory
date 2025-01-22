@@ -14,6 +14,7 @@ import FolderPills from '../components/FolderPills'
 import { Database } from '@/types/database.types'
 import Toast from '@/app/components/Toast'
 import DeleteConfirmation from '@/app/components/DeleteConfirmation'
+import { MediaCleanupService } from '@/services/mediaCleanup'
 
 type Folder = Database['public']['Tables']['folders']['Row']
 
@@ -292,22 +293,47 @@ export default function StoriesPage() {
     if (!storyToDelete || !userId) return
 
     try {
-      const { error } = await supabase
+      const cleanupService = new MediaCleanupService(supabase)
+      
+      // 1. Supprimer les fichiers médias
+      const { success, deletedPaths, errors } = await cleanupService.deleteStoryMedia(
+        storyToDelete,
+        userId
+      )
+
+      if (errors.length > 0) {
+        console.error('Errors during media cleanup:', errors)
+      }
+
+      // 2. Supprimer la story de la base de données
+      const { error: deleteError } = await supabase
         .from('stories')
         .delete()
         .eq('id', storyToDelete)
         .eq('author_id', userId)
 
-      if (error) throw error
+      if (deleteError) throw deleteError
 
-      await refetchStories()
+      // 3. Mettre à jour l'UI
       setStoryToDelete(null)
-      setToast({ message: 'Story supprimée avec succès', visible: true })
+      await refetchStories()
+
+      // 4. Notifier l'utilisateur
+      setToast({
+        message: `Story supprimée avec succès${
+          deletedPaths.length > 0 
+            ? ` (${deletedPaths.length} fichiers nettoyés)`
+            : ''
+        }`,
+        visible: true,
+        type: 'success'
+      })
     } catch (error) {
       console.error('Error deleting story:', error)
-      setToast({ 
-        message: 'Erreur lors de la suppression de la story', 
-        visible: true 
+      setToast({
+        message: 'Erreur lors de la suppression de la story',
+        visible: true,
+        type: 'error'
       })
     }
   }

@@ -55,13 +55,12 @@ export default function Header() {
   const { userId, supabase } = useAuth()
   const { t, language, setLanguage } = useTranslation()
   const [activeDropdown, setActiveDropdown] = useState<'language' | 'profile' | null>(null)
-  const [profile, setProfile] = useState<Profile>({
-    name: '',
-    picture: null
-  })
   const pathname = usePathname()
   const router = useRouter()
-  const { profilePicture, profileName, setProfile: setGlobalProfile } = useProfileStore()
+  const { profilePicture, profileName, tempProfilePicture, setGlobalProfile } = useProfileStore()
+
+  // Utiliser l'URL temporaire si elle existe, sinon l'URL permanente
+  const displayPicture = tempProfilePicture || profilePicture
 
   useEffect(() => {
     if (!userId) return
@@ -75,26 +74,10 @@ export default function Header() {
           .eq('user_id', userId)
           .single()
 
-        const prefs = prefsData as Preferences
-
-        if (prefs?.profile_picture) {
-          setGlobalProfile(prefs.profile_picture, prefs.profile_name)
-          setProfile(prev => ({
-            ...prev,
-            name: prefs.profile_name || '',
-            picture: prefs.profile_picture
-          }))
-        } else {
-          // Fallback sur l'image Google
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user?.user_metadata?.avatar_url) {
-            const avatarUrl = user.user_metadata.avatar_url.replace('=s96-c', '=s400-c')
-            setGlobalProfile(avatarUrl, user.user_metadata.full_name)
-            setProfile(prev => ({
-              ...prev,
-              name: user.user_metadata.full_name || '',
-              picture: avatarUrl
-            }))
+        if (prefsData) {
+          // Ne mettre à jour que si aucune URL temporaire n'est active
+          if (!tempProfilePicture) {
+            setGlobalProfile(prefsData.profile_picture, prefsData.profile_name || '')
           }
         }
       } catch (error) {
@@ -102,39 +85,8 @@ export default function Header() {
       }
     }
 
-    // Charger initialement
     loadProfilePicture()
-
-    // Écouter les changements de profil
-    const channel = supabase
-      .channel('preferences_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'preferences',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('Profile updated:', payload)
-          const newPrefs = payload.new as Preferences
-          if (newPrefs) {
-            setGlobalProfile(newPrefs.profile_picture, newPrefs.profile_name)
-            setProfile(prev => ({
-              ...prev,
-              name: newPrefs.profile_name || prev.name,
-              picture: newPrefs.profile_picture
-            }))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [userId, supabase, setGlobalProfile])
+  }, [userId, supabase, tempProfilePicture, setGlobalProfile])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -256,9 +208,9 @@ export default function Header() {
               aria-label={t('header.profile.menu')}
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
-                {profilePicture ? (
+                {displayPicture ? (
                   <img
-                    src={profilePicture}
+                    src={displayPicture}
                     alt="Profile"
                     className="w-full h-full object-cover"
                     style={{
@@ -277,7 +229,7 @@ export default function Header() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <User className={t('header.profile.fallback')} className="w-5 h-5 text-gray-400" />
+                    <User className="w-5 h-5 text-gray-400" aria-label={t('header.profile.fallback')} />
                   </div>
                 )}
               </div>

@@ -207,10 +207,26 @@ function StoryEditor() {
     }
 
     const loadUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setProfileName(user.user_metadata?.full_name || '')
-        setProfileImage(user.user_metadata?.avatar_url || '')
+      try {
+        // Charger uniquement les préférences de l'utilisateur
+        const { data: preferences, error: prefsError } = await supabase
+          .from('preferences')
+          .select('profile_name, profile_picture')
+          .eq('user_id', userId)
+          .single()
+
+        if (prefsError) {
+          console.error('Error loading preferences:', prefsError)
+          return
+        }
+
+        // Utiliser les préférences si elles existent
+        if (preferences) {
+          setProfileName(preferences.profile_name || '')
+          setProfileImage(preferences.profile_picture || '')
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error)
       }
     }
 
@@ -226,24 +242,48 @@ function StoryEditor() {
     const file = e.target.files?.[0]
     if (!file || !userId) return
 
+    // Valider l'image
+    if (!validateImage(file)) {
+      alert('Veuillez sélectionner une image valide (JPG, PNG, GIF, WebP) de moins de 5MB')
+      return
+    }
+
     try {
       setIsUploading(true)
-      const filePath = `${userId}/profile/${Date.now()}-${file.name}`
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${userId}/${Date.now()}.${fileExt}`
       
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(filePath, file, {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile')
+        .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         })
 
       if (uploadError) {
         throw new Error(`Erreur d'upload: ${uploadError.message}`)
       }
 
+      if (!uploadData?.path) {
+        throw new Error('Upload failed: No path returned')
+      }
+
       const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath)
+        .from('profile')
+        .getPublicUrl(uploadData.path)
+
+      // Mettre à jour les préférences avec la nouvelle photo
+      const { error: prefsError } = await supabase
+        .from('preferences')
+        .update({
+          profile_picture: publicUrl,
+          profile_name: profileName.trim() || null
+        })
+        .eq('user_id', userId)
+
+      if (prefsError) {
+        throw prefsError
+      }
 
       setProfileImage(publicUrl)
     } catch (error) {
@@ -252,6 +292,21 @@ function StoryEditor() {
     } finally {
       setIsUploading(false)
     }
+  }
+
+  function validateImage(file: File): boolean {
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      return false
+    }
+
+    // Vérifier la taille (max 5MB)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      return false
+    }
+
+    return true
   }
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
