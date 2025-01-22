@@ -1,0 +1,57 @@
+{
+  "header": {
+    "logo": "HehoStory",
+    "changeLanguage": "Change language",
+    "profile": {
+      "menu": "Profile menu",
+      "fallback": "Default profile picture"
+    }
+  },
+  "navigation": {
+    "stories": "Stories",
+    "widgets": "Widgets"
+  },
+  "profile": {
+    "settings": "Profile Settings",
+    "signOut": "Sign Out",
+    "page": {
+      "title": "Profile Settings",
+      "subtitle": "Manage your personal information and preferences",
+      "picture": {
+        "title": "Profile Picture",
+        "description": "This image will be displayed on your profile and widgets",
+        "upload": "Upload Image",
+        "delete": "Delete",
+        "dropzone": "Drag and drop an image here or click to select",
+        "error": "Error uploading image",
+        "validation": {
+          "error": "Please select a valid image file (JPG, PNG, GIF, WebP) under 5MB",
+          "readError": "Error reading file. Please try again."
+        }
+      },
+      "name": {
+        "title": "Profile Name",
+        "description": "This name will be displayed on your profile and widgets",
+        "placeholder": "Enter your name",
+        "error": "Name is required"
+      },
+      "preferences": {
+        "title": "Preferences",
+        "widgetColor": {
+          "title": "Widget Border Color",
+          "description": "This color will be used for your widgets border"
+        }
+      },
+      "save": "Save Changes",
+      "saved": "Changes saved",
+      "error": "An error occurred",
+      "loading": {
+        "error": "Error loading user data"
+      }
+    }
+  },
+  "languages": {
+    "fr": "French",
+    "en": "English"
+  }
+} 

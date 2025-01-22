@@ -9,6 +9,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfileStore } from '@/hooks/useProfile'
+import { useTranslation } from '@/hooks/useTranslation'
 
 type NavItem = {
   label: string
@@ -52,8 +53,8 @@ interface Preferences {
 
 export default function Header() {
   const { userId, supabase } = useAuth()
+  const { t, language, setLanguage } = useTranslation()
   const [activeDropdown, setActiveDropdown] = useState<'language' | 'profile' | null>(null)
-  const [language, setLanguage] = useState<'FR' | 'EN'>('FR')
   const [profile, setProfile] = useState<Profile>({
     name: '',
     picture: null
@@ -176,7 +177,7 @@ export default function Header() {
           href="/" 
           className="font-semibold text-xl text-gray-900 hover:text-gray-600 transition-colors"
         >
-          HehoStory
+          {t('header.logo')}
         </Link>
 
         {/* Navigation */}
@@ -192,7 +193,7 @@ export default function Header() {
                   : 'text-gray-500 hover:text-gray-900'}
               `}
             >
-              {item.label}
+              {t(`navigation.${item.label.toLowerCase()}`)}
               <span 
                 className={`
                   absolute -bottom-1 left-0 h-0.5 bg-gray-900 transition-all
@@ -210,7 +211,7 @@ export default function Header() {
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'language' ? null : 'language')}
               className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-              aria-label="Change language"
+              aria-label={t('header.changeLanguage')}
             >
               <Languages className="w-5 h-5" />
             </button>
@@ -240,7 +241,7 @@ export default function Header() {
                       height={12}
                       className="rounded-sm"
                     />
-                    {lang.label}
+                    {t(`languages.${lang.code.toLowerCase()}`)}
                   </button>
                 ))}
               </div>
@@ -252,6 +253,7 @@ export default function Header() {
             <button
               onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
               className="w-10 h-10 flex items-center justify-center"
+              aria-label={t('header.profile.menu')}
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100">
                 {profilePicture ? (
@@ -275,7 +277,7 @@ export default function Header() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-400" />
+                    <User className={t('header.profile.fallback')} className="w-5 h-5 text-gray-400" />
                   </div>
                 )}
               </div>
@@ -297,13 +299,13 @@ export default function Header() {
                     onClick={() => setActiveDropdown(null)}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Configuration du profil
+                    {t('profile.settings')}
                   </Link>
                   <button
                     onClick={handleSignOut}
                     className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50"
                   >
-                    Se déconnecter
+                    {t('profile.signOut')}
                   </button>
                 </div>
               </div>

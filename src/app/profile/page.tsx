@@ -8,6 +8,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useAuth } from '@/hooks/useAuth'
 import { HexColorPicker } from 'react-colorful'
 import { useProfileStore } from '@/hooks/useProfile'
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface Profile {
   name: string
@@ -34,6 +35,7 @@ function validateImage(file: File): boolean {
 }
 
 function ColorPickerPopover({ color, onChange }: { color: string, onChange: (color: string) => void }) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState({ top: 0, left: 0 })
@@ -91,7 +93,7 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
   return (
     <div className="relative" ref={popoverRef}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Border color
+        {t('profile.page.preferences.widgetColor.title')}
       </label>
       <div className="flex gap-2 items-center">
         <button
@@ -131,6 +133,7 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation()
   const { userId, loading: authLoading, supabase } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -219,13 +222,13 @@ export default function ProfilePage() {
       } catch (error) {
         console.error('Error loading data:', error)
         setToastType('error')
-        setToastMessage('Error loading user data')
+        setToastMessage(t('profile.page.loading.error'))
         setShowToast(true)
       }
     }
 
     loadUserData()
-  }, [mounted, userId, supabase])
+  }, [mounted, userId, supabase, t])
 
   const handleSave = async () => {
     if (!userId || isSaving) return
@@ -235,7 +238,7 @@ export default function ProfilePage() {
     // Valider que le nom n'est pas vide
     if (!profile.name?.trim()) {
       setToastType('error')
-      setToastMessage('Please enter your name')
+      setToastMessage(t('profile.page.name.error'))
       setShowToast(true)
       return
     }
@@ -318,12 +321,12 @@ export default function ProfilePage() {
       setGlobalProfile(finalPictureUrl, profile.name.trim())
 
       setToastType('success')
-      setToastMessage('Changes saved successfully!')
+      setToastMessage(t('profile.page.saved'))
       setShowToast(true)
     } catch (error: any) {
       console.error('Error saving:', error)
       setToastType('error')
-      setToastMessage(error.message || 'Error saving changes. Please try again.')
+      setToastMessage(error.message || t('profile.page.error'))
       setShowToast(true)
     } finally {
       setIsSaving(false)
@@ -337,7 +340,7 @@ export default function ProfilePage() {
     // Valider l'image
     if (!validateImage(file)) {
       setToastType('error')
-      setToastMessage('Please select a valid image file (JPG, PNG, GIF, WebP) under 5MB')
+      setToastMessage(t('profile.page.picture.validation.error'))
       setShowToast(true)
       return
     }
@@ -358,7 +361,7 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Error reading file:', error)
       setToastType('error')
-      setToastMessage('Error reading file. Please try again.')
+      setToastMessage(t('profile.page.picture.validation.readError'))
       setShowToast(true)
     }
   }
@@ -386,8 +389,8 @@ export default function ProfilePage() {
       />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-          <p className="mt-2 text-sm text-gray-600">Manage your profile appearance and preferences</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('profile.page.title')}</h1>
+          <p className="mt-2 text-sm text-gray-600">{t('profile.page.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -399,28 +402,15 @@ export default function ProfilePage() {
                   {profile.picture ? (
                     <img
                       src={profile.picture}
-                      alt="Profile"
+                      alt={t('profile.page.picture.title')}
                       className="w-full h-full object-cover"
                       loading="eager"
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        console.error('Image load error:', target.src);
-                        // Si c'est une image Google, essayer différentes tailles
-                        if (target.src.includes('googleusercontent.com')) {
-                          if (target.src.includes('=s400-c')) {
-                            target.src = target.src.replace('=s400-c', '=s200-c');
-                          } else if (target.src.includes('=s200-c')) {
-                            target.src = target.src.replace('=s200-c', '=s96-c');
-                          }
-                        }
-                        // Si c'est une image Supabase qui échoue, afficher l'icône par défaut
-                        else {
-                          target.style.display = 'none';
-                          target.parentElement?.classList.add('bg-gray-100');
-                          const icon = document.createElement('div');
-                          icon.className = 'w-full h-full flex items-center justify-center';
-                          icon.innerHTML = '<svg class="w-8 h-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>';
-                          target.parentElement?.appendChild(icon);
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                        const parent = target.parentElement
+                        if (parent) {
+                          parent.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-8 h-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>'
                         }
                       }}
                     />
@@ -433,7 +423,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                  title="Change profile picture"
+                  title={t('profile.page.picture.upload')}
                 >
                   <Camera className="w-4 h-4 text-gray-600" />
                 </button>
@@ -443,13 +433,13 @@ export default function ProfilePage() {
                   accept="image/jpeg,image/png,image/gif,image/webp"
                   onChange={handlePictureChange}
                   className="hidden"
-                  aria-label="Upload profile picture"
+                  aria-label={t('profile.page.picture.upload')}
                 />
               </div>
               <div className="flex-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name <span className="text-red-500">*</span>
+                    {t('profile.page.name.title')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -468,11 +458,12 @@ export default function ProfilePage() {
                         ? 'border-red-300' 
                         : 'border-gray-200'
                     } rounded-lg focus:border-gray-900 focus:ring-0`}
+                    placeholder={t('profile.page.name.placeholder')}
                     required
                   />
                   {(isNameTouched || hasAttemptedSave) && !profile.name?.trim() && (
                     <p className="mt-1 text-sm text-red-500">
-                      Name is required
+                      {t('profile.page.name.error')}
                     </p>
                   )}
                 </div>
@@ -482,12 +473,15 @@ export default function ProfilePage() {
 
           {/* Widget Preferences Section */}
           <div className="p-8 bg-gray-50">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Widget Preferences</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-6">{t('profile.page.preferences.title')}</h2>
             <div>
               <ColorPickerPopover
                 color={profile.defaultBorderColor}
                 onChange={(color) => setProfile(prev => ({ ...prev, defaultBorderColor: color }))}
               />
+              <p className="mt-1 text-sm text-gray-500">
+                {t('profile.page.preferences.widgetColor.description')}
+              </p>
             </div>
 
             {/* Save button */}
@@ -502,7 +496,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Save changes
+                    {t('profile.page.save')}
                   </>
                 )}
               </button>

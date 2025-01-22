@@ -1,0 +1,57 @@
+{
+  "header": {
+    "logo": "HehoStory",
+    "changeLanguage": "Changer de langue",
+    "profile": {
+      "menu": "Menu du profil",
+      "fallback": "Photo de profil par défaut"
+    }
+  },
+  "navigation": {
+    "stories": "Stories",
+    "widgets": "Widgets"
+  },
+  "profile": {
+    "settings": "Configuration du profil",
+    "signOut": "Se déconnecter",
+    "page": {
+      "title": "Paramètres du profil",
+      "subtitle": "Gérez vos informations personnelles et vos préférences",
+      "picture": {
+        "title": "Photo de profil",
+        "description": "Cette image sera affichée sur votre profil et vos widgets",
+        "upload": "Télécharger une image",
+        "delete": "Supprimer",
+        "dropzone": "Glissez-déposez une image ici ou cliquez pour sélectionner",
+        "error": "Erreur lors du téléchargement de l'image",
+        "validation": {
+          "error": "Veuillez sélectionner une image valide (JPG, PNG, GIF, WebP) de moins de 5MB",
+          "readError": "Erreur lors de la lecture du fichier. Veuillez réessayer."
+        }
+      },
+      "name": {
+        "title": "Nom du profil",
+        "description": "Ce nom sera affiché sur votre profil et vos widgets",
+        "placeholder": "Entrez votre nom",
+        "error": "Le nom est requis"
+      },
+      "preferences": {
+        "title": "Préférences",
+        "widgetColor": {
+          "title": "Couleur de bordure des widgets",
+          "description": "Cette couleur sera utilisée pour la bordure de vos widgets"
+        }
+      },
+      "save": "Enregistrer les modifications",
+      "saved": "Modifications enregistrées",
+      "error": "Une erreur est survenue",
+      "loading": {
+        "error": "Erreur lors du chargement des données utilisateur"
+      }
+    }
+  },
+  "languages": {
+    "fr": "Français",
+    "en": "Anglais"
+  }
+} 
