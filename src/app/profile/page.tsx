@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { HexColorPicker } from 'react-colorful'
 import { useProfileStore } from '@/hooks/useProfile'
 import { useTranslation } from '@/hooks/useTranslation'
+import StoryStyle from '@/components/StoryStyle'
 
 interface Profile {
   name: string
@@ -37,51 +38,31 @@ function validateImage(file: File): boolean {
 function ColorPickerPopover({ color, onChange }: { color: string, onChange: (color: string) => void }) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
-  const popoverRef = useRef<HTMLDivElement>(null)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-
-  useEffect(() => {
-    function updatePosition() {
-      if (popoverRef.current) {
-        const rect = popoverRef.current.getBoundingClientRect()
-        setPosition({
-          top: rect.bottom + window.scrollY + 10,
-          left: rect.left + window.scrollX
-        })
-      }
-    }
-
-    if (isOpen) {
-      updatePosition()
-      window.addEventListener('scroll', updatePosition)
-      window.addEventListener('resize', updatePosition)
-    }
-
-    return () => {
-      window.removeEventListener('scroll', updatePosition)
-      window.removeEventListener('resize', updatePosition)
-    }
-  }, [isOpen])
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    if (isOpen) {
+      // Ajouter un petit délai pour éviter que l'événement de clic qui ouvre
+      // le picker ne le ferme immédiatement
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside)
+      }, 0)
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isOpen])
 
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value
     if (!value.startsWith('#')) {
       value = '#' + value
     }
-    // Autoriser seulement les caractères hexadécimaux et limiter à 7 caractères (#RRGGBB)
     if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
-      // Compléter avec des zéros si nécessaire
       if (value.length === 7) {
         onChange(value)
       } else {
@@ -91,10 +72,7 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
   }
 
   return (
-    <div className="relative" ref={popoverRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {t('profile.page.preferences.widgetColor.title')}
-      </label>
+    <div className="relative" ref={containerRef}>
       <div className="flex gap-2 items-center">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -116,13 +94,7 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
       </div>
       
       {isOpen && (
-        <div 
-          className="fixed z-[9999]" 
-          style={{
-            top: `${position.top}px`,
-            left: `${position.left}px`
-          }}
-        >
+        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-[9999]">
           <div className="bg-white rounded-lg shadow-xl p-3">
             <HexColorPicker color={color} onChange={onChange} />
           </div>
@@ -131,6 +103,13 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
     </div>
   )
 }
+
+const DEFAULT_STORY_IMAGES = [
+  'https://images.unsplash.com/photo-1600096194534-95cf5ece04cf?q=80&w=1000&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1604514628550-37477afdf4e3?q=80&w=1000&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1611042553365-9b101441c135?q=80&w=1000&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1604514649606-2fdd0399de88?q=80&w=1000&auto=format&fit=crop'
+]
 
 export default function ProfilePage() {
   const { t } = useTranslation()
@@ -386,10 +365,16 @@ export default function ProfilePage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="max-w-3xl mx-auto px-4 py-12">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded-lg w-1/4"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="h-32 w-32 bg-gray-200 rounded-xl"></div>
+                <div className="h-10 bg-gray-200 rounded-lg w-2/3"></div>
+              </div>
+              <div className="h-[600px] bg-gray-200 rounded-xl"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -404,60 +389,66 @@ export default function ProfilePage() {
         onClose={() => setShowToast(false)}
         type={toastType}
       />
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t('profile.page.title')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{t('profile.page.subtitle')}</p>
+
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="mb-6 max-w-3xl">
+          <h1 className="text-2xl font-semibold text-gray-900">Paramètres par défaut des stories</h1>
+          <p className="mt-1.5 text-sm text-gray-600">
+            Définissez l'apparence par défaut de vos stories. 
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Profile Section */}
-          <div className="p-8 border-b border-gray-200">
-            <div className="flex items-center space-x-6">
-              <div className="relative shrink-0">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                  {profile.picture ? (
-                    <img
-                      src={profile.picture}
-                      alt={t('profile.page.picture.title')}
-                      className="w-full h-full object-cover"
-                      loading="eager"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                        const parent = target.parentElement
-                        if (parent) {
-                          parent.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-8 h-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>'
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <Camera className="w-8 h-8 text-gray-400" />
-                    </div>
-                  )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Profile Settings */}
+          <div className="space-y-5">
+            {/* Profile Picture Upload */}
+            <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xs font-medium text-gray-500 mb-4">Photo de story par défaut</span>
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg transition-all duration-300 group-hover:shadow-xl">
+                    {profile.picture ? (
+                      <img
+                        src={profile.picture}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                          const parent = target.parentElement
+                          if (parent) {
+                            parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-50"><svg class="w-10 h-10 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>'
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                        <Camera className="w-10 h-10 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-1 right-1 bg-white rounded-lg p-2.5 shadow-lg border border-gray-200 hover:border-gray-300 transition-all hover:scale-105 hover:shadow-xl"
+                    title={t('profile.page.picture.upload')}
+                  >
+                    <Camera className="w-4 h-4 text-gray-700" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handlePictureChange}
+                    className="hidden"
+                    aria-label={t('profile.page.picture.upload')}
+                  />
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:border-gray-300 transition-colors"
-                  title={t('profile.page.picture.upload')}
-                >
-                  <Camera className="w-4 h-4 text-gray-600" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handlePictureChange}
-                  className="hidden"
-                  aria-label={t('profile.page.picture.upload')}
-                />
-              </div>
-              <div className="flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.page.name.title')} <span className="text-red-500">*</span>
-                  </label>
+
+                {/* Name Input */}
+                <div className="mt-5 w-full max-w-sm">
+                  <span className="block text-xs font-medium text-gray-500 mb-2">Nom de story par défaut</span>
                   <input
                     type="text"
                     value={profile.name}
@@ -470,53 +461,109 @@ export default function ProfilePage() {
                       }))
                     }}
                     onBlur={() => setIsNameTouched(true)}
-                    className={`block w-full px-4 py-2 text-gray-900 bg-white border ${
+                    className={`block w-full px-3.5 py-2.5 text-base text-center text-gray-900 bg-white border ${
                       (isNameTouched || hasAttemptedSave) && !profile.name?.trim() 
-                        ? 'border-red-300' 
+                        ? 'border-red-300 ring-2 ring-red-100' 
                         : 'border-gray-200'
-                    } rounded-lg focus:border-gray-900 focus:ring-0`}
+                    } rounded-lg focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 transition-all`}
                     placeholder={t('profile.page.name.placeholder')}
                     required
                   />
                   {(isNameTouched || hasAttemptedSave) && !profile.name?.trim() && (
-                    <p className="mt-1 text-sm text-red-500">
+                    <p className="mt-1.5 text-sm text-red-500 flex items-center justify-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
                       {t('profile.page.name.error')}
                     </p>
                   )}
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Widget Preferences Section */}
-          <div className="p-8 bg-gray-50">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">{t('profile.page.preferences.title')}</h2>
-            <div>
-              <ColorPickerPopover
-                color={profile.defaultBorderColor}
-                onChange={(color) => setProfile(prev => ({ ...prev, defaultBorderColor: color }))}
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                {t('profile.page.preferences.widgetColor.description')}
-              </p>
+            {/* Widget Settings */}
+            <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+              <div className="space-y-5">
+                {/* Color Picker */}
+                <div className="mb-5">
+                  <span className="block text-xs font-medium text-gray-500 mb-2">Couleur de bordure par défaut</span>
+                  <ColorPickerPopover
+                    color={profile.defaultBorderColor}
+                    onChange={(color) => setProfile(prev => ({ ...prev, defaultBorderColor: color }))}
+                  />
+                </div>
+
+                {/* Widget Preview */}
+                <div className="flex flex-wrap justify-center gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <StoryStyle
+                      key={`bubble-${i}`}
+                      variant="bubble"
+                      story={{
+                        id: `preview-${i}`,
+                        title: '',
+                        author_id: '',
+                        published: true,
+                        created_at: new Date().toISOString(),
+                        folder_id: null,
+                        profile_name: profile.name || '',
+                        profile_image: profile.picture || null,
+                        thumbnail: DEFAULT_STORY_IMAGES[i],
+                        content: JSON.stringify({
+                          mediaItems: [{
+                            id: 'preview',
+                            type: 'image',
+                            url: DEFAULT_STORY_IMAGES[i],
+                            file: null
+                          }]
+                        })
+                      }}
+                      size="md"
+                      style={{ borderColor: profile.defaultBorderColor }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Save button */}
-            <div className="mt-8">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full flex items-center justify-center h-11 px-6 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    {t('profile.page.save')}
-                  </>
-                )}
-              </button>
+            {/* Save Button */}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full flex items-center justify-center h-10 px-5 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 shadow-sm hover:shadow-md"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {t('profile.page.save')}
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Right Column - Story Preview */}
+          <div className="relative">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="relative aspect-[9/16] w-full max-w-[360px] mx-auto">
+                  <StoryStyle
+                    variant="preview"
+                    items={[{
+                      id: 'preview',
+                      type: 'image',
+                      url: 'https://images.unsplash.com/photo-1604514628550-37477afdf4e3?q=80&w=1000&auto=format&fit=crop',
+                      file: null
+                    }]}
+                    profileImage={profile.picture || undefined}
+                    profileName={profile.name || ''}
+                    isPhonePreview={true}
+                    hideNavigation={true}
+                    className="rounded-lg overflow-hidden shadow-lg"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
