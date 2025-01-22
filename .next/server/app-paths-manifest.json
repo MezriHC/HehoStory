@@ -1,10 +1,10 @@
 {
-  "/widget/page": "app/widget/page.js",
-  "/widget/create/page": "app/widget/create/page.js",
   "/profile/page": "app/profile/page.js",
-  "/story/create/page": "app/story/create/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/widget/create/page": "app/widget/create/page.js",
   "/story/page": "app/story/page.js",
+  "/story/create/page": "app/story/create/page.js",
+  "/widget/page": "app/widget/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/auth/signin/page": "app/auth/signin/page.js",
   "/auth/callback/route": "app/auth/callback/route.js"
 }

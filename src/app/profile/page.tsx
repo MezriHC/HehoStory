@@ -20,6 +20,15 @@ interface Profile {
   pendingFile?: File | null
 }
 
+const DEFAULT_PROFILE: Profile = {
+  name: '',
+  picture: null,
+  defaultBorderColor: '#000000',
+  customName: null,
+  customPicture: null,
+  pendingFile: null
+}
+
 function validateImage(file: File): boolean {
   const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   if (!validTypes.includes(file.type)) {
@@ -38,18 +47,23 @@ function validateImage(file: File): boolean {
 function ColorPickerPopover({ color, onChange }: { color: string, onChange: (color: string) => void }) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      // Si on clique sur le bouton, on ne fait rien (géré par onClick)
+      if (buttonRef.current?.contains(event.target as Node)) {
+        return
+      }
+      // Si on clique en dehors du picker, on ferme
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
 
     if (isOpen) {
-      // Ajouter un petit délai pour éviter que l'événement de clic qui ouvre
-      // le picker ne le ferme immédiatement
+      // Petit délai pour éviter la fermeture immédiate
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside)
       }, 0)
@@ -72,9 +86,10 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
   }
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative">
       <div className="flex gap-2 items-center">
         <button
+          ref={buttonRef}
           onClick={() => setIsOpen(!isOpen)}
           className="h-[42px] w-[42px] rounded-lg border border-gray-200 p-1 cursor-pointer hover:border-gray-300"
         >
@@ -94,7 +109,10 @@ function ColorPickerPopover({ color, onChange }: { color: string, onChange: (col
       </div>
       
       {isOpen && (
-        <div className="absolute left-0 top-[calc(100%+0.5rem)] z-[9999]">
+        <div 
+          ref={pickerRef}
+          className="absolute left-0 top-[calc(100%+0.5rem)] z-[9999]"
+        >
           <div className="bg-white rounded-lg shadow-xl p-3">
             <HexColorPicker color={color} onChange={onChange} />
           </div>
@@ -118,14 +136,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false)
   const [isNameTouched, setIsNameTouched] = useState(false)
-  const [profile, setProfile] = useState<Profile>({
-    name: '',
-    picture: null,
-    defaultBorderColor: '#000000',
-    customName: null,
-    customPicture: null,
-    pendingFile: null
-  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE)
   const [showToast, setShowToast] = useState(false)
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
   const [toastMessage, setToastMessage] = useState('')
@@ -148,6 +160,7 @@ export default function ProfilePage() {
 
     const loadUserData = async () => {
       try {
+        setIsLoading(true)
         // Récupérer les données de l'utilisateur depuis l'authentification
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
@@ -166,37 +179,32 @@ export default function ProfilePage() {
             .from('preferences')
             .insert({
               user_id: userId,
-              widget_border_color: '#000000',
-              profile_name: '',
-              profile_picture: null
+              widget_border_color: DEFAULT_PROFILE.defaultBorderColor,
+              profile_name: DEFAULT_PROFILE.name,
+              profile_picture: DEFAULT_PROFILE.picture
             })
 
           if (createError) throw createError
 
-          setProfile(prev => ({
-            ...prev,
-            name: '',
-            picture: null,
-            defaultBorderColor: '#000000',
-            customName: '',
-            customPicture: null
-          }))
+          setProfile(DEFAULT_PROFILE)
         } else {
           // Si préférences existantes, utiliser les valeurs sauvegardées
-          setProfile(prev => ({
-            ...prev,
+          setProfile({
             name: prefsData.profile_name || '',
             picture: prefsData.profile_picture,
-            defaultBorderColor: prefsData.widget_border_color,
+            defaultBorderColor: prefsData.widget_border_color || DEFAULT_PROFILE.defaultBorderColor,
             customName: prefsData.profile_name,
-            customPicture: prefsData.profile_picture
-          }))
+            customPicture: prefsData.profile_picture,
+            pendingFile: null
+          })
         }
       } catch (error) {
         console.error('Error loading data:', error)
         setToastType('error')
         setToastMessage(t('profile.page.loading.error'))
         setShowToast(true)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -362,18 +370,64 @@ export default function ProfilePage() {
     }
   }, [])
 
-  if (!mounted) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded-lg w-1/4"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="h-32 w-32 bg-gray-200 rounded-xl"></div>
-                <div className="h-10 bg-gray-200 rounded-lg w-2/3"></div>
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Header Skeleton */}
+          <div className="mb-6 max-w-3xl animate-pulse">
+            <div className="h-7 bg-gray-200 rounded-lg w-64 mb-2"></div>
+            <div className="h-5 bg-gray-100 rounded-lg w-96"></div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column Skeleton */}
+            <div className="space-y-5">
+              {/* Profile Card Skeleton */}
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex flex-col items-center text-center animate-pulse">
+                  <div className="h-4 bg-gray-100 rounded w-32 mb-4"></div>
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-b from-gray-200 to-gray-100 mb-5 border-4 border-white shadow-lg"></div>
+                  <div className="w-full max-w-sm">
+                    <div className="h-4 bg-gray-100 rounded w-40 mx-auto mb-2"></div>
+                    <div className="h-10 bg-gray-200 rounded-lg w-full"></div>
+                  </div>
+                </div>
               </div>
-              <div className="h-[600px] bg-gray-200 rounded-xl"></div>
+
+              {/* Widget Settings Skeleton */}
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="space-y-5 animate-pulse">
+                  <div className="h-4 bg-gray-100 rounded w-48 mb-2"></div>
+                  <div className="flex gap-2 items-center">
+                    <div className="h-[42px] w-[42px] rounded-lg bg-gradient-to-b from-gray-200 to-gray-100 border border-gray-200"></div>
+                    <div className="h-[38px] w-28 rounded-lg bg-gray-200 border border-gray-200"></div>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="w-[90px] h-[90px] rounded-full bg-gradient-to-b from-gray-200 to-gray-100 border-4 border-white shadow-lg"
+                        style={{
+                          animation: `pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite ${i * 0.2}s`
+                        }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button Skeleton */}
+              <div className="h-10 bg-gray-200 rounded-lg w-full animate-pulse"></div>
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="relative">
+              <div className="sticky top-8">
+                <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                  <div className="relative aspect-[9/16] w-full max-w-[360px] mx-auto bg-gradient-to-b from-gray-200 to-gray-100 rounded-lg animate-pulse shadow-lg"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
