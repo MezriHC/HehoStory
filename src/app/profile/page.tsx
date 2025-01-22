@@ -277,24 +277,29 @@ export default function ProfilePage() {
 
       // Si un fichier est en attente, l'uploader d'abord
       if (profile.pendingFile) {
-        // Si une ancienne photo existe, la supprimer
-        if (profile.customPicture && !profile.customPicture.includes('googleusercontent')) {
+        // Supprimer l'ancienne photo si elle existe
+        if (profile.customPicture) {
           try {
-            const oldFileUrl = new URL(profile.customPicture)
-            const pathParts = oldFileUrl.pathname.split('profile/')
-            if (pathParts.length > 1) {
-              const oldFilePath = pathParts[1]
-              console.log('Deleting old file:', oldFilePath)
+            // Lister tous les fichiers de l'utilisateur dans le bucket profile
+            const { data: files, error: listError } = await supabase.storage
+              .from('profile')
+              .list(userId)
+
+            if (listError) {
+              console.error('Error listing files:', listError)
+            } else if (files && files.length > 0) {
+              // Supprimer tous les fichiers existants
+              const filesToDelete = files.map(file => `${userId}/${file.name}`)
               const { error: deleteError } = await supabase.storage
                 .from('profile')
-                .remove([oldFilePath])
-              
+                .remove(filesToDelete)
+
               if (deleteError) {
-                console.error('Error deleting old file:', deleteError)
+                console.error('Error deleting old files:', deleteError)
               }
             }
           } catch (error) {
-            console.error('Error parsing old file URL:', error)
+            console.error('Error cleaning up old files:', error)
           }
         }
 

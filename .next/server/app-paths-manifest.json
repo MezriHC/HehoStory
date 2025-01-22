@@ -1,7 +1,6 @@
 {
   "/profile/page": "app/profile/page.js",
   "/story/page": "app/story/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/story/create/page": "app/story/create/page.js",
   "/widget/page": "app/widget/page.js",
   "/auth/signin/page": "app/auth/signin/page.js"

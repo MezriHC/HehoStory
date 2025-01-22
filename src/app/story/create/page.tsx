@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Story } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useProfileStore } from '@/hooks/useProfile'
 
 interface SaveStoryData {
   title: string
@@ -191,6 +192,7 @@ function StoryEditor() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [thumbnail, setThumbnail] = useState<{ file: File | null; url: string | null }>({ file: null, url: null })
+  const { profilePicture, setGlobalProfile, setTempProfile, clearTempProfile } = useProfileStore()
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const profileImageInputRef = useRef<HTMLInputElement>(null)
@@ -249,7 +251,16 @@ function StoryEditor() {
     }
 
     try {
-      setIsUploading(true)
+      // Créer une URL temporaire pour la prévisualisation
+      const tempUrl = URL.createObjectURL(file)
+      
+      // Mettre à jour le state local
+      setProfileImage(tempUrl)
+
+      // Mettre à jour le store global avec l'URL temporaire
+      setTempProfile(tempUrl)
+
+      // Upload en arrière-plan
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}/${Date.now()}.${fileExt}`
       
@@ -285,12 +296,17 @@ function StoryEditor() {
         throw prefsError
       }
 
+      // Mettre à jour le state local et le store global avec l'URL finale
       setProfileImage(publicUrl)
+      setGlobalProfile(publicUrl, profileName.trim())
+      clearTempProfile()
     } catch (error) {
       console.error('Error uploading profile image:', error)
       alert('Erreur lors de l\'upload de l\'image de profil')
-    } finally {
-      setIsUploading(false)
+      
+      // En cas d'erreur, revenir à l'état précédent
+      setProfileImage(profilePicture || '')
+      clearTempProfile()
     }
   }
 
