@@ -635,159 +635,115 @@ export default function WidgetsPage() {
     }
   }
 
-  if (isLoading) {
-    return <Loader />
-  }
-
-  if (widgets.length === 0) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Widgets</h1>
-              <p className="mt-2 text-gray-600">
-                Gérez vos widgets et créez de nouvelles expériences
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <Link
-                href="/widget/create"
-                className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Créer un widget
-              </Link>
-            </div>
-          </div>
-
-          <FolderPills
-            folders={folders}
-            currentFolder={currentFolder}
-            onFolderSelect={handleFolderSelect}
-            onCreateFolder={handleCreateFolder}
-            onDeleteFolder={handleDeleteFolder}
-            onMoveToFolder={handleMoveToFolder}
-            onRenameFolder={handleRenameFolder}
-            selectedItems={selectedWidgets}
-          />
-
-          <EmptyState
-            icon={LayoutGrid}
-            title="Aucun widget"
-            description="Commencez par créer votre premier widget"
-            actionLabel="Créer un widget"
-            actionHref="/widget/create"
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white">
-      <Toast
-        message={toast.message}
-        visible={toast.visible}
-        onClose={() => setToast(prev => ({ ...prev, visible: false }))}
-      />
+    <>
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <>
+          <div className="max-w-7xl mx-auto py-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">Widgets</h1>
+                <p className="mt-2 text-gray-600">
+                  Gérez vos widgets et créez de nouvelles expériences
+                </p>
+              </div>
 
-      <DeleteConfirmation 
-        isOpen={widgetToDelete !== null}
-        onClose={() => setWidgetToDelete(null)}
-        onConfirm={confirmDelete}
-        title="Delete Widget"
-        description="Are you sure you want to delete this widget? This action cannot be undone."
-      />
+              <div className="flex gap-4">
+                <Link
+                  href="/widget/create"
+                  className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Créer un widget
+                </Link>
+              </div>
+            </div>
 
-      {previewWidget && (
-        <BrowserPreview 
-          isOpen={true}
-          onClose={() => {
-            setPreviewWidget(null)
-            setPreviewStories([])
-          }}
-          widget={{
-            ...previewWidget,
-            stories: previewStories
-          }}
-          stories={previewStories}
-          borderColor={previewWidget.border_color}
-        />
-      )}
+            <FolderPills
+              folders={folders}
+              currentFolder={currentFolder}
+              onFolderSelect={handleFolderSelect}
+              onCreateFolder={handleCreateFolder}
+              onDeleteFolder={handleDeleteFolder}
+              onMoveToFolder={handleMoveToFolder}
+              onRenameFolder={handleRenameFolder}
+              selectedItems={selectedWidgets}
+            />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Widgets</h1>
-            <p className="mt-2 text-gray-600">
-              Gérez vos widgets et créez de nouvelles expériences
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-            <Link
-              href="/widget/create"
-              className="inline-flex items-center justify-center h-10 px-4 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Créer un widget
-            </Link>
-          </div>
-        </div>
-
-        <FolderPills
-          folders={folders}
-          currentFolder={currentFolder}
-          onFolderSelect={handleFolderSelect}
-          onCreateFolder={handleCreateFolder}
-          onDeleteFolder={handleDeleteFolder}
-          onMoveToFolder={handleMoveToFolder}
-          onRenameFolder={handleRenameFolder}
-          selectedItems={selectedWidgets}
-        />
-
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search widgets..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
-          />
-        </div>
-
-        {widgets.length === 0 ? (
-          <EmptyState
-            icon={LayoutGrid}
-            title="Aucun widget"
-            description="Commencez par créer votre premier widget"
-            actionLabel="Créer un widget"
-            actionHref="/widget/create"
-          />
-        ) : filteredWidgets.length === 0 && currentFolder !== null ? (
-          <EmptyFolderState 
-            message={`Aucun widget dans ${
-              folders.find(f => f.id === currentFolder)?.name || 'ce dossier'
-            }`}
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredWidgets.map((widget) => (
-              <WidgetCard
-                key={widget.id}
-                widget={widget}
-                onDelete={handleDelete}
-                onPreview={() => handlePreview(widget)}
-                selected={selectedWidgets.includes(widget.id)}
-                onSelect={() => handleWidgetSelect(widget.id)}
+            <div className="relative mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search widgets..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
               />
-            ))}
+            </div>
+
+            {widgets.length === 0 ? (
+              <EmptyState
+                icon={LayoutGrid}
+                title="Aucun widget"
+                description="Commencez par créer votre premier widget"
+                actionLabel="Créer un widget"
+                actionHref="/widget/create"
+              />
+            ) : filteredWidgets.length === 0 && currentFolder !== null ? (
+              <EmptyFolderState 
+                message={`Aucun widget dans ${
+                  folders.find(f => f.id === currentFolder)?.name || 'ce dossier'
+                }`}
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredWidgets.map((widget) => (
+                  <WidgetCard
+                    key={widget.id}
+                    widget={widget}
+                    onDelete={handleDelete}
+                    onPreview={() => handlePreview(widget)}
+                    selected={selectedWidgets.includes(widget.id)}
+                    onSelect={() => handleWidgetSelect(widget.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+
+          <Toast
+            message={toast.message}
+            visible={toast.visible}
+            onClose={() => setToast(prev => ({ ...prev, visible: false }))}
+          />
+
+          <DeleteConfirmation 
+            isOpen={widgetToDelete !== null}
+            onClose={() => setWidgetToDelete(null)}
+            onConfirm={confirmDelete}
+            title="Delete Widget"
+            description="Are you sure you want to delete this widget? This action cannot be undone."
+          />
+
+          {previewWidget && (
+            <BrowserPreview 
+              isOpen={true}
+              onClose={() => {
+                setPreviewWidget(null)
+                setPreviewStories([])
+              }}
+              widget={{
+                ...previewWidget,
+                stories: previewStories
+              }}
+              stories={previewStories}
+              borderColor={previewWidget.border_color}
+            />
+          )}
+        </>
+      )}
+    </>
   )
 } 

@@ -496,7 +496,7 @@ export default function WidgetEditor({ initialWidget }: { initialWidget?: Widget
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             {step === 1 ? (

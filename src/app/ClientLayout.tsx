@@ -14,8 +14,10 @@ export default function ClientLayout({
   return (
     <div className="min-h-full flex flex-col">
       {!isAuthPage && <Header />}
-      <main className={`flex-1 w-full ${!isAuthPage ? 'max-w-7xl mx-auto px-4 py-6' : ''}`}>
-        {children}
+      <main className={`flex-1 ${!isAuthPage ? 'py-6' : ''}`}>
+        <div className={`${!isAuthPage ? 'max-w-7xl mx-auto' : ''}`}>
+          {children}
+        </div>
       </main>
     </div>
   )

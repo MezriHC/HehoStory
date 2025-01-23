@@ -1,6 +1,6 @@
 'use client'
 
-import { Layers, Plus } from 'lucide-react'
+import { Layers, Plus, Search } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import EmptyFolderState from '../components/EmptyFolderState'
 import StoriesList, { Story } from '../components/StoriesList'
@@ -29,6 +29,7 @@ export default function StoriesPage() {
   const { userId, loading: authLoading, supabase } = useAuth()
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
   const [selectedStories, setSelectedStories] = useState<string[]>([])
+  const [search, setSearch] = useState('')
   const [toast, setToast] = useState<ToastState>({ 
     message: '', 
     visible: false,
@@ -368,9 +369,9 @@ export default function StoriesPage() {
     }
   }
 
-  // Filtrer les stories selon le dossier sélectionné
-  const filteredStories = stories.filter(story => 
-    currentFolder === null || story.folder_id === currentFolder
+  const filteredStories = stories.filter(story =>
+    story.title.toLowerCase().includes(search.toLowerCase()) &&
+    (currentFolder === null || story.folder_id === currentFolder)
   )
 
   const isLoading = authLoading || isStoriesLoading || isFoldersLoading
@@ -395,7 +396,7 @@ export default function StoriesPage() {
         description="Êtes-vous sûr de vouloir supprimer cette story ? Cette action est irréversible."
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Stories</h1>
@@ -425,6 +426,17 @@ export default function StoriesPage() {
           onRenameFolder={handleRenameFolder}
           selectedItems={selectedStories}
         />
+
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search stories..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full h-11 pl-12 pr-4 text-sm text-gray-900 placeholder-gray-500 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+          />
+        </div>
 
         {stories.length === 0 ? (
           <EmptyState

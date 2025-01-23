@@ -12,7 +12,7 @@ export default function CreateWidgetClient({ initialWidget }: CreateWidgetClient
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto py-8">
         <WidgetEditor initialWidget={parsedWidget} />
       </div>
     </div>
